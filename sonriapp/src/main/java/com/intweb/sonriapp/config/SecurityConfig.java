@@ -1,9 +1,10 @@
 package com.intweb.sonriapp.config;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.annotation.*;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.crypto.bcrypt.*;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
@@ -20,23 +21,23 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
-                        // PERMITIR LOGIN Y RECURSOS (IMPORTANTE PARA QUE CARGUE TU HTML + IMAGEN)
                         .requestMatchers("/login", "/img/**", "/css/**", "/js/**").permitAll()
-
-                        // ROLES
-                        .requestMatchers("/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/doctor/**").hasAnyRole("DOCTOR", "ADMIN")
-                        .requestMatchers("/paciente/**").hasRole("PACIENTE")
-
+                        .requestMatchers("/admin/**").hasRole("Administrador")
+                        .requestMatchers("/doctor/**").hasAnyRole("Odontologo", "Administrador")
+                        .requestMatchers("/recepcion/**").hasAnyRole("Recepcionista", "Administrador")
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
                         .loginPage("/login")
-                        .loginProcessingUrl("/login") // 👈 necesario
-                        .defaultSuccessUrl("/redirect", true)
+                        .loginProcessingUrl("/login")
+                        .defaultSuccessUrl("/dashboard", true)
                         .permitAll()
                 )
-                .logout(logout -> logout.logoutSuccessUrl("/login?logout"));
+                .logout(logout -> logout
+                        .logoutUrl("/logout")
+                        .logoutSuccessUrl("/login?logout")
+                        .permitAll()
+                );
 
         return http.build();
     }

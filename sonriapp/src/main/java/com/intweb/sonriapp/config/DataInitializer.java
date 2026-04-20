@@ -6,10 +6,14 @@ import com.intweb.sonriapp.repository.RolRepository;
 import com.intweb.sonriapp.repository.UsuarioRepository;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
+
 @Component
+@Profile("dev")
 @RequiredArgsConstructor
 public class DataInitializer {
 
@@ -19,35 +23,29 @@ public class DataInitializer {
 
     @PostConstruct
     public void init() {
+        Rol admin  = rolRepository.findByNombre("Administrador").orElseThrow();
+        Rol doctor = rolRepository.findByNombre("Odontologo").orElseThrow();
+        Rol recep  = rolRepository.findByNombre("Recepcionista").orElseThrow();
 
-        // ===== ROLES =====
-        Rol adminRol = crearRolSiNoExiste("ROLE_ADMIN");
-        Rol doctorRol = crearRolSiNoExiste("ROLE_DOCTOR");
-        Rol pacienteRol = crearRolSiNoExiste("ROLE_PACIENTE");
+        crearUsuario("12345678", "Admin",  "Sistema", "admin@gmail.com",  admin);
+        crearUsuario("87654321", "Doctor", "Ejemplo", "doctor@gmail.com", doctor);
+        crearUsuario("11223344", "Recep",  "Ejemplo", "recep@gmail.com",  recep);
 
-        // ===== USUARIOS =====
-        crearUsuario("admin@gmail.com", "123456", adminRol);
-        crearUsuario("doctor@gmail.com", "123456", doctorRol);
-        crearUsuario("paciente@gmail.com", "123456", pacienteRol);
-
-        System.out.println("✅ Roles y usuarios creados");
+        System.out.println("✅ Usuarios de prueba cargados (perfil dev)");
     }
 
-    private Rol crearRolSiNoExiste(String nombre) {
-        return rolRepository.findByNombre(nombre)
-                .orElseGet(() -> {
-                    Rol rol = new Rol();
-                    rol.setNombre(nombre);
-                    return rolRepository.save(rol);
-                });
-    }
-
-    private void crearUsuario(String correo, String password, Rol rol) {
+    private void crearUsuario(String dni, String nombre,
+                              String apellido, String correo, Rol rol) {
         if (usuarioRepository.findByCorreo(correo).isEmpty()) {
             Usuario u = new Usuario();
+            u.setDni(dni);
+            u.setNombre(nombre);
+            u.setApellido(apellido);
             u.setCorreo(correo);
-            u.setPassword(passwordEncoder.encode(password));
+            u.setContrasena(passwordEncoder.encode("123456"));
+            u.setFechaNacimiento(LocalDate.of(1990, 1, 1));
             u.setRol(rol);
+            u.setActivo(true);
             usuarioRepository.save(u);
         }
     }

@@ -8,11 +8,11 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "usuarios")
+@Table(name = "pacientes")
 @Getter @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Usuario {
+public class Paciente {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -27,26 +27,30 @@ public class Usuario {
     @Column(nullable = false, length = 100)
     private String apellido;
 
-    @Column(nullable = false, unique = true, length = 150)
-    private String correo;
-
     @Column(length = 9)
     private String telefono;
 
     @Column(name = "fecha_nacimiento", nullable = false)
     private LocalDate fechaNacimiento;
 
-    @Column(nullable = false, length = 255)
-    private String contrasena;
-
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "rol_id", nullable = false)
-    private Rol rol;
-
     @Column(nullable = false)
-    private Boolean activo = true;
+    @Enumerated(EnumType.STRING)
+    private Genero genero;
+
+    @Column(length = 255)
+    private String direccion;
+
+    @Column(name = "contacto_emergencia", length = 9)
+    private String contactoEmergencia;
+
+    @Column(columnDefinition = "TEXT")
+    private String antecedentes;
 
     @CreationTimestamp
     @Column(name = "fecha_registro", updatable = false)
     private LocalDateTime fechaRegistro;
+
+    public enum Genero {
+        Masculino, Femenino, Otro
+    }
 }
