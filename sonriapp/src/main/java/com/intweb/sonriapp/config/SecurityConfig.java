@@ -21,6 +21,11 @@ public class SecurityConfig {
         http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/login").permitAll()
+
+                        .requestMatchers("/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/doctor/**").hasRole("DOCTOR")
+                        .requestMatchers("/paciente/**").hasRole("PACIENTE")
+
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form

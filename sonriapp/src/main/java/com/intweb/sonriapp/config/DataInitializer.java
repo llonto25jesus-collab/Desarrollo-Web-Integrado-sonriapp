@@ -20,25 +20,35 @@ public class DataInitializer {
     @PostConstruct
     public void init() {
 
-        // Crear rol si no existe
-        Rol rol = rolRepository.findByNombre("ROLE_ADMIN")
+        // ===== ROLES =====
+        Rol adminRol = crearRolSiNoExiste("ROLE_ADMIN");
+        Rol doctorRol = crearRolSiNoExiste("ROLE_DOCTOR");
+        Rol pacienteRol = crearRolSiNoExiste("ROLE_PACIENTE");
+
+        // ===== USUARIOS =====
+        crearUsuario("admin@gmail.com", "123456", adminRol);
+        crearUsuario("doctor@gmail.com", "123456", doctorRol);
+        crearUsuario("paciente@gmail.com", "123456", pacienteRol);
+
+        System.out.println("✅ Roles y usuarios creados");
+    }
+
+    private Rol crearRolSiNoExiste(String nombre) {
+        return rolRepository.findByNombre(nombre)
                 .orElseGet(() -> {
-                    Rol r = new Rol();
-                    r.setNombre("ROLE_ADMIN");
-                    return rolRepository.save(r);
+                    Rol rol = new Rol();
+                    rol.setNombre(nombre);
+                    return rolRepository.save(rol);
                 });
+    }
 
-        // Crear usuario si no existe
-        if (usuarioRepository.findByCorreo("admin@gmail.com").isEmpty()) {
-
-            Usuario usuario = new Usuario();
-            usuario.setCorreo("admin@gmail.com");
-            usuario.setPassword(passwordEncoder.encode("123456"));
-            usuario.setRol(rol);
-
-            usuarioRepository.save(usuario);
-
-            System.out.println("✅ Usuario admin creado automáticamente");
+    private void crearUsuario(String correo, String password, Rol rol) {
+        if (usuarioRepository.findByCorreo(correo).isEmpty()) {
+            Usuario u = new Usuario();
+            u.setCorreo(correo);
+            u.setPassword(passwordEncoder.encode(password));
+            u.setRol(rol);
+            usuarioRepository.save(u);
         }
     }
 }
