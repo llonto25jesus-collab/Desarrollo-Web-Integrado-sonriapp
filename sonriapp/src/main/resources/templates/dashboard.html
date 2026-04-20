@@ -1,7 +1,36 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard</title>
+</head>
+<body>
+
 <h1>Bienvenido</h1>
 
-<a href="/admin">Admin</a><br>
-<a href="/doctor">Doctor</a><br>
-<a href="/paciente">Paciente</a><br><br>
+<p>Usuario: <span sec:authentication="name"></span></p>
 
+<!-- ADMIN -->
+<div sec:authorize="hasRole('ADMIN')">
+    <h3>ADMIN</h3>
+    <a href="/admin">Panel Admin</a><br>
+</div>
+
+<!-- DOCTOR -->
+<div sec:authorize="hasAnyRole('DOCTOR','ADMIN')">
+    <h3>DOCTOR</h3>
+    <a href="/doctor">Panel Doctor</a><br>
+</div>
+
+<!-- PACIENTE -->
+<div sec:authorize="hasRole('PACIENTE')">
+    <h3>PACIENTE</h3>
+    <a href="/paciente">Panel Paciente</a><br>
+</div>
+
+<br>
 <a href="/logout">Cerrar sesión</a>
+
+</body>
+</html>
