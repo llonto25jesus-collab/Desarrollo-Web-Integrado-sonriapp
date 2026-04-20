@@ -1,21 +1,128 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-  <title>Login</title>
+  <meta charset="UTF-8">
+  <title>Login - SonriApp</title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #eef2f7;
+    }
+
+    .container {
+      display: flex;
+      height: 100vh;
+    }
+
+    /* IZQUIERDA */
+    .left {
+      flex: 1;
+      padding: 40px;
+    }
+
+    .logo {
+      font-size: 28px;
+      font-weight: bold;
+      color: #2563eb;
+    }
+
+    .subtitle {
+      color: #555;
+      margin-bottom: 20px;
+    }
+
+    .image-box {
+      width: 100%;
+      height: 70%;
+      border-radius: 15px;
+      overflow: hidden;
+    }
+
+    .image-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* DERECHA */
+    .right {
+      width: 400px;
+      background: white;
+      padding: 40px;
+      box-shadow: -5px 0 15px rgba(0,0,0,0.1);
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    .desc {
+      text-align: center;
+      color: #666;
+      margin-bottom: 20px;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    button:hover {
+      background: #1e4fd8;
+    }
+  </style>
 </head>
 <body>
 
-<h2>Login</h2>
+<div class="container">
 
-<form th:action="@{/login}" method="post">
-  <label>Correo:</label>
-  <input type="text" name="username"/>
+  <!-- IZQUIERDA -->
+  <div class="left">
+    <div class="logo">SONRIAPP</div>
+    <div class="subtitle">Sistema de Gestión Dental</div>
 
-  <label>Password:</label>
-  <input type="password" name="password"/>
+    <div class="image-box">
+      <img src="/img/portada.jpg" loading="lazy" alt="clinica">
+    </div>
+  </div>
 
-  <button type="submit">Ingresar</button>
-</form>
+  <!-- DERECHA -->
+  <div class="right">
+
+    <h2>Iniciar Sesión</h2>
+    <p class="desc">Accede a tu cuenta</p>
+
+    <form th:action="@{/login}" method="post">
+
+      <label>Email</label>
+      <input type="text" name="username" placeholder="tu@email.com" required>
+
+      <label>Contraseña</label>
+      <input type="password" name="password" placeholder="********" required>
+
+      <button type="submit">Iniciar Sesión</button>
+    </form>
+
+  </div>
+
+</div>
 
 </body>
 </html>

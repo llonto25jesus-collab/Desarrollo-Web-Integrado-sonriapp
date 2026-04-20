@@ -20,22 +20,20 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/login").permitAll()
+                        // PERMITIR LOGIN Y RECURSOS (IMPORTANTE PARA QUE CARGUE TU HTML + IMAGEN)
+                        .requestMatchers("/login", "/img/**", "/css/**", "/js/**").permitAll()
 
-                        // ADMIN (solo admin)
+                        // ROLES
                         .requestMatchers("/admin/**").hasRole("ADMIN")
-
-                        // DOCTOR puede ser DOCTOR o ADMIN
                         .requestMatchers("/doctor/**").hasAnyRole("DOCTOR", "ADMIN")
-
-                        // PACIENTE (solo paciente)
                         .requestMatchers("/paciente/**").hasRole("PACIENTE")
 
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
                         .loginPage("/login")
-                        .defaultSuccessUrl("/redirect", true) // 👈 importante
+                        .loginProcessingUrl("/login") // 👈 necesario
+                        .defaultSuccessUrl("/redirect", true)
                         .permitAll()
                 )
                 .logout(logout -> logout.logoutSuccessUrl("/login?logout"));
