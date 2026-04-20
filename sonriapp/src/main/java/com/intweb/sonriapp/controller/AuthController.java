@@ -1,5 +1,7 @@
 package com.intweb.sonriapp.controller;
 
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 
@@ -12,7 +14,29 @@ public class AuthController {
         return "login";
     }
 
-    // DASHBOARD GENERAL
+    // REDIRECCIÓN SEGÚN ROL (IMPORTANTE)
+    @GetMapping("/redirect")
+    public String redirect(Authentication auth) {
+
+        for (GrantedAuthority role : auth.getAuthorities()) {
+
+            if (role.getAuthority().equals("ROLE_ADMIN")) {
+                return "redirect:/admin";
+            }
+
+            if (role.getAuthority().equals("ROLE_DOCTOR")) {
+                return "redirect:/doctor";
+            }
+
+            if (role.getAuthority().equals("ROLE_PACIENTE")) {
+                return "redirect:/paciente";
+            }
+        }
+
+        return "redirect:/login";
+    }
+
+    // DASHBOARD (opcional)
     @GetMapping("/dashboard")
     public String dashboard() {
         return "dashboard";
