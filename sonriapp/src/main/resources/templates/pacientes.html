@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <meta charset="UTF-8">
+  <title>Pacientes - Sonriapp</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: sans-serif; background: #f5f5f5; display: flex; min-height: 100vh; }
+
+    /* ── Sidebar ── */
+    .sidebar { width: 220px; background: #fff; border-right: 1px solid #e5e5e5;
+               display: flex; flex-direction: column; padding: 1.5rem 0; flex-shrink: 0; }
+    .sidebar-brand { padding: 0 1.25rem 1.25rem; font-size: 18px; font-weight: 600;
+                     border-bottom: 1px solid #e5e5e5; }
+    .sidebar-brand span { font-size: 12px; color: #888; font-weight: 400; display: block; margin-top: 2px; }
+    .nav-section { padding: 1rem 0; flex: 1; }
+    .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 1.25rem;
+                font-size: 14px; color: #555; text-decoration: none;
+                border-left: 2px solid transparent; }
+    .nav-item:hover { background: #f5f5f5; color: #111; }
+    .nav-item.active { color: #111; font-weight: 600; border-left: 2px solid #378ADD; background: #f0f6ff; }
+    .nav-bottom { padding: 1rem 1.25rem; border-top: 1px solid #e5e5e5; margin-top: auto; }
+    .user-info { font-size: 13px; color: #888; margin-bottom: 8px; }
+    .user-info strong { display: block; color: #111; font-size: 14px; }
+    .logout-btn { font-size: 13px; color: #555; text-decoration: none; }
+    .logout-btn:hover { color: #111; }
+
+    /* ── Main ── */
+    .main { flex: 1; padding: 2rem; overflow: auto; }
+    .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; }
+    .page-title { font-size: 20px; font-weight: 600; }
+    .btn-primary { background: #378ADD; color: white; border: none; padding: 8px 16px;
+                   border-radius: 4px; cursor: pointer; font-size: 14px; }
+    .btn-primary:hover { background: #2b6cb0; }
+
+    /* ── Filtros ── */
+    .filters { background: #fff; border: 1px solid #e5e5e5; border-radius: 8px;
+               padding: 14px 16px; margin-bottom: 1.25rem;
+               display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+    .filter-group { display: flex; flex-direction: column; gap: 4px; }
+    .filter-group label { font-size: 12px; font-weight: 600; color: #666; }
+    .filter-group input,
+    .filter-group select { padding: 7px 10px; border: 1px solid #ddd; border-radius: 4px;
+                           font-size: 13px; background: #fff; }
+    .filter-group input { width: 160px; }
+    .filter-group select { width: 140px; }
+    .btn-clear { background: none; border: 1px solid #ddd; color: #555; padding: 7px 12px;
+                 border-radius: 4px; cursor: pointer; font-size: 13px; }
+    .btn-clear:hover { background: #f5f5f5; }
+    .filter-count { font-size: 12px; color: #888; margin-left: auto; align-self: center; }
+
+    /* ── Tabla ── */
+    .table-wrap { background: #fff; border: 1px solid #e5e5e5; border-radius: 8px; overflow: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 860px; }
+    th { background: #fafafa; color: #888; font-weight: 500; text-align: left;
+         padding: 10px 14px; border-bottom: 1px solid #e5e5e5; }
+    td { padding: 10px 14px; border-bottom: 1px solid #e5e5e5; vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr.hidden-row { display: none; }
+    .empty { color: #aaa; text-align: center; padding: 40px; }
+
+    /* Botones de acción en tabla */
+    .action-btns { display: flex; gap: 6px; }
+    .btn-icon { border: none; border-radius: 4px; cursor: pointer; font-size: 12px;
+                padding: 5px 10px; font-weight: 500; }
+    .btn-view  { background: #e8f4fd; color: #378ADD; }
+    .btn-view:hover  { background: #d0eafa; }
+    .btn-edit  { background: #fff3cd; color: #856404; }
+    .btn-edit:hover  { background: #ffe69c; }
+
+    /* ── Modal genérico ── */
+    .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0;
+             width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); }
+    .modal-content { background-color: #fff; margin: 3% auto; padding: 20px;
+                     width: 90%; max-width: 600px; border-radius: 8px;
+                     max-height: 90vh; overflow-y: auto; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center;
+                    margin-bottom: 18px; padding-bottom: 10px; border-bottom: 1px solid #e5e5e5; }
+    .modal-header h2 { font-size: 18px; }
+    .close { font-size: 26px; font-weight: bold; cursor: pointer; color: #aaa; line-height: 1; }
+    .close:hover { color: #000; }
+
+    /* ── Formularios (crear / editar) ── */
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; margin-bottom: 5px; font-size: 13px; font-weight: 600; color: #555; }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }
+    .form-group input:read-only { background: #f5f5f5; color: #777; cursor: not-allowed; }
+    .form-row { display: flex; gap: 15px; }
+    .form-row .form-group { flex: 1; }
+    .btn-validate { background: #6c757d; color: white; border: none; padding: 8px 12px;
+                    border-radius: 4px; cursor: pointer; margin-left: 8px; font-size: 12px; white-space: nowrap; }
+    .btn-validate:hover { background: #5a6268; }
+    .btn-submit { background: #378ADD; color: white; border: none; padding: 10px 20px;
+                  border-radius: 4px; cursor: pointer; font-size: 14px; width: 100%; margin-top: 4px; }
+    .btn-submit:hover { background: #2b6cb0; }
+    .dni-input-group { display: flex; align-items: center; }
+    .dni-input-group input { flex: 1; }
+
+    /* ── Modal Ver (detalle) ── */
+    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 20px; }
+    .detail-item label { font-size: 11px; font-weight: 600; color: #888; text-transform: uppercase;
+                         display: block; margin-bottom: 3px; }
+    .detail-item span { font-size: 14px; color: #111; }
+    .detail-item.full { grid-column: 1 / -1; }
+    .detail-divider { grid-column: 1 / -1; border: none; border-top: 1px solid #eee; margin: 4px 0; }
+
+    /* ── Alertas ── */
+    .alert { padding: 10px; border-radius: 4px; margin-bottom: 14px; font-size: 13px; }
+    .alert-error   { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    .alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .alert-info    { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════════════ SIDEBAR ════════════════════════════ -->
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    Sonriapp
+    <span>Panel de control</span>
+  </div>
+  <nav class="nav-section">
+    <a class="nav-item" th:href="@{/dashboard}">Dashboard</a>
+    <a class="nav-item active" th:href="@{/pacientes}">Pacientes</a>
+    <a class="nav-item" th:href="@{/citas}">Citas</a>
+    <a class="nav-item" sec:authorize="hasAnyRole('Odontologo','Administrador')"
+       th:href="@{/servicios}">Servicios</a>
+    <a class="nav-item" sec:authorize="hasRole('Administrador')"
+       th:href="@{/usuarios}">Usuarios</a>
+  </nav>
+  <div class="nav-bottom">
+    <div class="user-info">
+      <strong th:text="${#authentication.name}">usuario@gmail.com</strong>
+      <span th:text="${rol}">Rol</span>
+    </div>
+    <a class="logout-btn" th:href="@{/logout}">Cerrar sesión →</a>
+  </div>
+</aside>
+
+<!-- ════════════════════════════ MAIN ════════════════════════════════ -->
+<main class="main">
+  <div class="page-header">
+    <div class="page-title">Pacientes</div>
+    <button class="btn-primary" onclick="abrirModalCrear()">+ Nuevo Paciente</button>
+  </div>
+
+  <!-- ── Filtros ────────────────────────────────────────────────────── -->
+  <div class="filters">
+    <div class="filter-group">
+      <label>DNI</label>
+      <input type="text" id="filtroDni" placeholder="Buscar por DNI…" maxlength="8" oninput="filtrarTabla()">
+    </div>
+    <div class="filter-group">
+      <label>Nombre o Apellido</label>
+      <input type="text" id="filtroNombre" placeholder="Buscar nombre…" oninput="filtrarTabla()">
+    </div>
+    <div class="filter-group">
+      <label>Género</label>
+      <select id="filtroGenero" onchange="filtrarTabla()">
+        <option value="">Todos</option>
+        <option value="Masculino">Masculino</option>
+        <option value="Femenino">Femenino</option>
+        <option value="Otro">Otro</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Teléfono</label>
+      <input type="text" id="filtroTelefono" placeholder="Buscar teléfono…" maxlength="9" oninput="filtrarTabla()">
+    </div>
+    <button class="btn-clear" onclick="limpiarFiltros()">Limpiar</button>
+    <span class="filter-count" id="filtroConteo"></span>
+  </div>
+
+  <!-- ── Tabla ──────────────────────────────────────────────────────── -->
+  <div class="table-wrap">
+    <table id="tablaPacientes">
+      <thead>
+      <tr>
+        <th>DNI</th>
+        <th>Nombre</th>
+        <th>Apellido</th>
+        <th>Teléfono</th>
+        <th>Fecha Nacimiento</th>
+        <th>Género</th>
+        <th>Acciones</th>
+      </tr>
+      </thead>
+      <tbody id="cuerpoTabla">
+      <tr th:if="${#lists.isEmpty(pacientes)}">
+        <td colspan="7" class="empty">No hay pacientes registrados</td>
+      </tr>
+      <tr th:each="p : ${pacientes}"
+          th:data-dni="${p.dni}"
+          th:data-nombre="${p.nombre}"
+          th:data-apellido="${p.apellido}"
+          th:data-telefono="${p.telefono}"
+          th:data-genero="${p.genero}">
+        <td th:text="${p.dni}"></td>
+        <td th:text="${p.nombre}"></td>
+        <td th:text="${p.apellido}"></td>
+        <td th:text="${p.telefono != null ? p.telefono : '—'}"></td>
+        <td th:text="${#temporals.format(p.fechaNacimiento, 'dd/MM/yyyy')}"></td>
+        <td th:text="${p.genero}"></td>
+        <td>
+          <div class="action-btns">
+            <button class="btn-icon btn-view"
+                    th:onclick="'abrirModalVer(' + ${p.id} + ')'">👁 Ver</button>
+            <button class="btn-icon btn-edit"
+                    th:onclick="'abrirModalEditar(' + ${p.id} + ')'">✏ Editar</button>
+          </div>
+        </td>
+      </tr>
+      </tbody>
+    </table>
+  </div>
+</main>
+
+<!-- ════════════════════════════ MODAL CREAR ══════════════════════════ -->
+<div id="modalCrear" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Nuevo Paciente</h2>
+      <span class="close" onclick="cerrarModal('modalCrear')">&times;</span>
+    </div>
+    <div id="alertaCrear"></div>
+    <form id="formCrear" onsubmit="guardarPaciente(event)">
+      <div class="form-group">
+        <label>DNI *</label>
+        <div class="dni-input-group">
+          <input type="text" id="c_dni" maxlength="8" required
+                 oninput="this.value = this.value.replace(/\D/g,'')">
+          <button type="button" class="btn-validate" onclick="validarDniCrear()">Validar DNI</button>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Nombre *</label>
+          <!-- readonly por defecto; se desbloquea si la API falla -->
+          <input type="text" id="c_nombre" required readonly>
+        </div>
+        <div class="form-group">
+          <label>Apellido *</label>
+          <input type="text" id="c_apellido" required readonly>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Teléfono</label>
+          <input type="text" id="c_telefono" maxlength="9"
+                 oninput="this.value = this.value.replace(/\D/g,'')">
+        </div>
+        <div class="form-group">
+          <label>Fecha Nacimiento *</label>
+          <input type="date" id="c_fechaNacimiento" required>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Género *</label>
+          <select id="c_genero" required>
+            <option value="">Seleccionar</option>
+            <option value="Masculino">Masculino</option>
+            <option value="Femenino">Femenino</option>
+            <option value="Otro">Otro</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Contacto Emergencia</label>
+          <input type="text" id="c_contactoEmergencia" maxlength="9"
+                 oninput="this.value = this.value.replace(/\D/g,'')">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Dirección</label>
+        <input type="text" id="c_direccion">
+      </div>
+      <div class="form-group">
+        <label>Antecedentes Médicos</label>
+        <textarea id="c_antecedentes" rows="3"></textarea>
+      </div>
+      <button type="submit" class="btn-submit">Registrar Paciente</button>
+    </form>
+  </div>
+</div>
+
+<!-- ════════════════════════════ MODAL VER ════════════════════════════ -->
+<div id="modalVer" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Detalle del Paciente</h2>
+      <span class="close" onclick="cerrarModal('modalVer')">&times;</span>
+    </div>
+    <div id="detallePaciente" class="detail-grid">
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════ MODAL EDITAR ═════════════════════════ -->
+<div id="modalEditar" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Editar Paciente</h2>
+      <span class="close" onclick="cerrarModal('modalEditar')">&times;</span>
+    </div>
+    <div id="alertaEditar"></div>
+    <form id="formEditar" onsubmit="actualizarPaciente(event)">
+      <input type="hidden" id="e_id">
+      <div class="form-group">
+        <label>DNI</label>
+        <input type="text" id="e_dni" readonly>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Nombre *</label>
+          <input type="text" id="e_nombre" required>
+        </div>
+        <div class="form-group">
+          <label>Apellido *</label>
+          <input type="text" id="e_apellido" required>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Teléfono</label>
+          <input type="text" id="e_telefono" maxlength="9"
+                 oninput="this.value = this.value.replace(/\D/g,'')">
+        </div>
+        <div class="form-group">
+          <label>Fecha Nacimiento *</label>
+          <input type="date" id="e_fechaNacimiento" required>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Género *</label>
+          <select id="e_genero" required>
+            <option value="Masculino">Masculino</option>
+            <option value="Femenino">Femenino</option>
+            <option value="Otro">Otro</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Contacto Emergencia</label>
+          <input type="text" id="e_contactoEmergencia" maxlength="9"
+                 oninput="this.value = this.value.replace(/\D/g,'')">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Dirección</label>
+        <input type="text" id="e_direccion">
+      </div>
+      <div class="form-group">
+        <label>Antecedentes Médicos</label>
+        <textarea id="e_antecedentes" rows="3"></textarea>
+      </div>
+      <button type="submit" class="btn-submit">Guardar Cambios</button>
+    </form>
+  </div>
+</div>
+
+<!-- ════════════════════════════ SCRIPTS ══════════════════════════════ -->
+<script>
+  // ── Helpers modales ────────────────────────────────────────────────
+  function cerrarModal(id) { document.getElementById(id).style.display = 'none'; }
+  window.onclick = e => {
+    ['modalCrear','modalVer','modalEditar'].forEach(id => {
+      if (e.target === document.getElementById(id)) cerrarModal(id);
+    });
+  };
+
+  function mostrarAlerta(contId, mensaje, tipo) {
+    const div = document.getElementById(contId);
+    const cls = tipo === 'error' ? 'alert-error' : tipo === 'success' ? 'alert-success' : 'alert-info';
+    div.innerHTML = `<div class="alert ${cls}">${mensaje}</div>`;
+    if (tipo !== 'error') setTimeout(() => { div.innerHTML = ''; }, 3000);
+  }
+
+  // ── Modal CREAR ────────────────────────────────────────────────────
+  function abrirModalCrear() {
+    document.getElementById('formCrear').reset();
+    document.getElementById('alertaCrear').innerHTML = '';
+    // Bloquear nombre/apellido al abrir
+    bloquearNombreApellido(true);
+    document.getElementById('modalCrear').style.display = 'block';
+  }
+
+  function bloquearNombreApellido(bloquear) {
+    ['c_nombre','c_apellido'].forEach(id => {
+      const el = document.getElementById(id);
+      el.readOnly = bloquear;
+    });
+  }
+
+  async function validarDniCrear() {
+    const dni = document.getElementById('c_dni').value.trim();
+    if (!/^\d{8}$/.test(dni)) {
+      mostrarAlerta('alertaCrear', 'Ingrese un DNI válido de 8 dígitos', 'error');
+      return;
+    }
+    mostrarAlerta('alertaCrear', 'Consultando RENIEC…', 'info');
+    try {
+      const resp = await fetch(`/pacientes/validar-dni?dni=${dni}`);
+      const data = await resp.json();
+      if (resp.ok) {
+        // ── FIX principal: la API devuelve "nombre" y "apellido" ──
+        document.getElementById('c_nombre').value  = data.nombre   || '';
+        document.getElementById('c_apellido').value = data.apellido || '';
+        bloquearNombreApellido(true);   // mantener bloqueados si la API respondió bien
+        mostrarAlerta('alertaCrear', 'DNI validado correctamente', 'success');
+      } else {
+        mostrarAlerta('alertaCrear', data.error || 'Error al validar DNI', 'error');
+        document.getElementById('c_nombre').value  = '';
+        document.getElementById('c_apellido').value = '';
+        // Si el error es de RENIEC (no de duplicado), desbloquear para ingreso manual
+        if (!data.error?.includes('registrado')) {
+          bloquearNombreApellido(false);
+        }
+      }
+    } catch {
+      mostrarAlerta('alertaCrear', 'Error de conexión. Puede ingresar el nombre manualmente.', 'error');
+      bloquearNombreApellido(false);   // desbloquear para ingreso manual si falla la conexión
+    }
+  }
+
+  async function guardarPaciente(e) {
+    e.preventDefault();
+    const body = {
+      dni:               document.getElementById('c_dni').value.trim(),
+      nombre:            document.getElementById('c_nombre').value.trim(),
+      apellido:          document.getElementById('c_apellido').value.trim(),
+      telefono:          document.getElementById('c_telefono').value.trim(),
+      fechaNacimiento:   document.getElementById('c_fechaNacimiento').value,
+      genero:            document.getElementById('c_genero').value,
+      direccion:         document.getElementById('c_direccion').value.trim(),
+      contactoEmergencia:document.getElementById('c_contactoEmergencia').value.trim(),
+      antecedentes:      document.getElementById('c_antecedentes').value.trim()
+    };
+    try {
+      const resp = await fetch('/pacientes/guardar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const data = await resp.json();
+      if (resp.ok && data.success) {
+        mostrarAlerta('alertaCrear', 'Paciente registrado exitosamente', 'success');
+        setTimeout(() => location.reload(), 1500);
+      } else {
+        mostrarAlerta('alertaCrear', data.error || 'Error al registrar paciente', 'error');
+      }
+    } catch {
+      mostrarAlerta('alertaCrear', 'Error al guardar el paciente', 'error');
+    }
+  }
+
+  // ── Modal VER ──────────────────────────────────────────────────────
+  async function abrirModalVer(id) {
+    try {
+      const resp = await fetch(`/pacientes/${id}`);
+      if (!resp.ok) { alert('No se pudo cargar el paciente'); return; }
+      const p = await resp.json();
+      document.getElementById('detallePaciente').innerHTML = `
+        <div class="detail-item"><label>DNI</label><span>${p.dni}</span></div>
+        <div class="detail-item"><label>Fecha de registro</label><span>${formatFecha(p.fechaRegistro)}</span></div>
+        <hr class="detail-divider">
+        <div class="detail-item"><label>Nombre</label><span>${p.nombre}</span></div>
+        <div class="detail-item"><label>Apellido</label><span>${p.apellido}</span></div>
+        <div class="detail-item"><label>Género</label><span>${p.genero}</span></div>
+        <div class="detail-item"><label>Fecha Nacimiento</label><span>${formatFechaSimple(p.fechaNacimiento)}</span></div>
+        <div class="detail-item"><label>Teléfono</label><span>${p.telefono || '—'}</span></div>
+        <div class="detail-item"><label>Contacto Emergencia</label><span>${p.contactoEmergencia || '—'}</span></div>
+        <div class="detail-item full"><label>Dirección</label><span>${p.direccion || '—'}</span></div>
+        <div class="detail-item full"><label>Antecedentes Médicos</label><span>${p.antecedentes || '—'}</span></div>
+      `;
+      document.getElementById('modalVer').style.display = 'block';
+    } catch {
+      alert('Error al cargar los datos del paciente');
+    }
+  }
+
+  // ── Modal EDITAR ───────────────────────────────────────────────────
+  async function abrirModalEditar(id) {
+    try {
+      const resp = await fetch(`/pacientes/${id}`);
+      if (!resp.ok) { alert('No se pudo cargar el paciente'); return; }
+      const p = await resp.json();
+      document.getElementById('e_id').value               = p.id;
+      document.getElementById('e_dni').value              = p.dni;
+      document.getElementById('e_nombre').value           = p.nombre;
+      document.getElementById('e_apellido').value         = p.apellido;
+      document.getElementById('e_telefono').value         = p.telefono || '';
+      document.getElementById('e_fechaNacimiento').value  = p.fechaNacimiento; // ya viene como YYYY-MM-DD
+      document.getElementById('e_genero').value           = p.genero;
+      document.getElementById('e_contactoEmergencia').value = p.contactoEmergencia || '';
+      document.getElementById('e_direccion').value        = p.direccion || '';
+      document.getElementById('e_antecedentes').value     = p.antecedentes || '';
+      document.getElementById('alertaEditar').innerHTML   = '';
+      document.getElementById('modalEditar').style.display = 'block';
+    } catch {
+      alert('Error al cargar los datos del paciente');
+    }
+  }
+
+  async function actualizarPaciente(e) {
+    e.preventDefault();
+    const id = document.getElementById('e_id').value;
+    const body = {
+      dni:               document.getElementById('e_dni').value.trim(),
+      nombre:            document.getElementById('e_nombre').value.trim(),
+      apellido:          document.getElementById('e_apellido').value.trim(),
+      telefono:          document.getElementById('e_telefono').value.trim(),
+      fechaNacimiento:   document.getElementById('e_fechaNacimiento').value,
+      genero:            document.getElementById('e_genero').value,
+      direccion:         document.getElementById('e_direccion').value.trim(),
+      contactoEmergencia:document.getElementById('e_contactoEmergencia').value.trim(),
+      antecedentes:      document.getElementById('e_antecedentes').value.trim()
+    };
+    try {
+      const resp = await fetch(`/pacientes/${id}/editar`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const data = await resp.json();
+      if (resp.ok && data.success) {
+        mostrarAlerta('alertaEditar', 'Paciente actualizado exitosamente', 'success');
+        setTimeout(() => location.reload(), 1500);
+      } else {
+        mostrarAlerta('alertaEditar', data.error || 'Error al actualizar', 'error');
+      }
+    } catch {
+      mostrarAlerta('alertaEditar', 'Error al guardar los cambios', 'error');
+    }
+  }
+
+  // ── Filtros ────────────────────────────────────────────────────────
+  function filtrarTabla() {
+    const dni      = document.getElementById('filtroDni').value.trim().toLowerCase();
+    const nombre   = document.getElementById('filtroNombre').value.trim().toLowerCase();
+    const genero   = document.getElementById('filtroGenero').value;
+    const telefono = document.getElementById('filtroTelefono').value.trim();
+
+    const filas = document.querySelectorAll('#cuerpoTabla tr[data-dni]');
+    let visibles = 0;
+
+    filas.forEach(fila => {
+      const fDni      = (fila.dataset.dni      || '').toLowerCase();
+      const fNombre   = (fila.dataset.nombre   || '').toLowerCase();
+      const fApellido = (fila.dataset.apellido || '').toLowerCase();
+      const fGenero   = (fila.dataset.genero   || '');
+      const fTelefono = (fila.dataset.telefono || '');
+
+      const coincide =
+        (!dni      || fDni.includes(dni)) &&
+        (!nombre   || fNombre.includes(nombre) || fApellido.includes(nombre)) &&
+        (!genero   || fGenero === genero) &&
+        (!telefono || fTelefono.includes(telefono));
+
+      fila.style.display = coincide ? '' : 'none';
+      if (coincide) visibles++;
+    });
+
+    const total = filas.length;
+    document.getElementById('filtroConteo').textContent =
+      total > 0 ? `${visibles} de ${total} paciente${total !== 1 ? 's' : ''}` : '';
+  }
+
+  function limpiarFiltros() {
+    ['filtroDni','filtroNombre','filtroTelefono'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('filtroGenero').value = '';
+    filtrarTabla();
+  }
+
+  // ── Utilidades de fecha ────────────────────────────────────────────
+  function formatFechaSimple(iso) {
+    if (!iso) return '—';
+    // iso puede ser "2000-05-12"
+    const [y, m, d] = iso.split('-');
+    return `${d}/${m}/${y}`;
+  }
+
+  function formatFecha(iso) {
+    if (!iso) return '—';
+    try {
+      return new Date(iso).toLocaleString('es-PE', { dateStyle: 'short', timeStyle: 'short' });
+    } catch { return iso; }
+  }
+
+  // Inicializar conteo al cargar
+  filtrarTabla();
+</script>
+</body>
+</html>

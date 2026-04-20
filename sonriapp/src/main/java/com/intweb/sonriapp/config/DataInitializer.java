@@ -31,7 +31,7 @@ public class DataInitializer {
         crearUsuario("87654321", "Doctor", "Ejemplo", "doctor@gmail.com", doctor);
         crearUsuario("11223344", "Recep",  "Ejemplo", "recep@gmail.com",  recep);
 
-        System.out.println("✅ Usuarios de prueba cargados (perfil dev)");
+        System.out.println("Usuarios de prueba cargados (solo perfil dev, osea pa probar)");
     }
 
     private void crearUsuario(String dni, String nombre,

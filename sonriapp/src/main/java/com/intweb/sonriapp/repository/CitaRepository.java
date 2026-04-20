@@ -11,13 +11,13 @@ import java.util.List;
 
 public interface CitaRepository extends JpaRepository<Cita, Integer> {
 
-    // Citas entre dos fechas (para contar el mes)
+    // Citas entre dos fechas
     long countByFechaBetween(LocalDate inicio, LocalDate fin);
 
     // Citas del día de hoy para el dashboard
     List<Cita> findByFechaOrderByHoraAsc(LocalDate fecha);
 
-    // Suma de ingresos del mes (precio del servicio x citas completadas)
+    // Suma de ingresos del mes
     @Query("""
         SELECT COALESCE(SUM(c.servicio.precio), 0)
         FROM Cita c
