@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Usuarios - Sonriapp</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: sans-serif; background: #f5f5f5; display: flex; min-height: 100vh; }
+        .sidebar { width: 220px; background: #fff; border-right: 1px solid #e5e5e5;
+                   display: flex; flex-direction: column; padding: 1.5rem 0; flex-shrink: 0; }
+        .sidebar-brand { padding: 0 1.25rem 1.25rem; font-size: 18px; font-weight: 600;
+                         border-bottom: 1px solid #e5e5e5; }
+        .sidebar-brand span { font-size: 12px; color: #888; font-weight: 400; display: block; margin-top: 2px; }
+        .nav-section { padding: 1rem 0; flex: 1; }
+        .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 1.25rem;
+                    font-size: 14px; color: #555; text-decoration: none;
+                    border-left: 2px solid transparent; }
+        .nav-item:hover { background: #f5f5f5; color: #111; }
+        .nav-item.active { color: #111; font-weight: 600; border-left: 2px solid #378ADD; background: #f0f6ff; }
+        .nav-bottom { padding: 1rem 1.25rem; border-top: 1px solid #e5e5e5; margin-top: auto; }
+        .user-info { font-size: 13px; color: #888; margin-bottom: 8px; }
+        .user-info strong { display: block; color: #111; font-size: 14px; }
+        .logout-btn { font-size: 13px; color: #555; text-decoration: none; }
+        .logout-btn:hover { color: #111; }
+        .main { flex: 1; padding: 2rem; overflow: auto; }
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; }
+        .page-title { font-size: 20px; font-weight: 600; }
+        .btn-primary { background: #378ADD; color: white; border: none; padding: 8px 16px;
+                       border-radius: 4px; cursor: pointer; font-size: 14px; }
+        .btn-primary:hover { background: #2b6cb0; }
+        .filters { background: #fff; border: 1px solid #e5e5e5; border-radius: 8px;
+                   padding: 14px 16px; margin-bottom: 1.25rem;
+                   display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+        .filter-group { display: flex; flex-direction: column; gap: 4px; }
+        .filter-group label { font-size: 12px; font-weight: 600; color: #666; }
+        .filter-group input, .filter-group select {
+            padding: 7px 10px; border: 1px solid #ddd; border-radius: 4px;
+            font-size: 13px; background: #fff; width: 160px; }
+        .btn-filter { background: #378ADD; color: white; border: none; padding: 7px 14px;
+                      border-radius: 4px; cursor: pointer; font-size: 13px; }
+        .btn-filter:hover { background: #2b6cb0; }
+        .btn-clear { background: none; border: 1px solid #ddd; color: #555; padding: 7px 12px;
+                     border-radius: 4px; cursor: pointer; font-size: 13px; }
+        .btn-clear:hover { background: #f5f5f5; }
+        .filter-count { font-size: 12px; color: #888; margin-left: auto; align-self: center; }
+        .table-wrap { background: #fff; border: 1px solid #e5e5e5; border-radius: 8px; overflow: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 820px; }
+        th { background: #fafafa; color: #888; font-weight: 500; text-align: left;
+             padding: 10px 14px; border-bottom: 1px solid #e5e5e5; }
+        td { padding: 10px 14px; border-bottom: 1px solid #e5e5e5; vertical-align: middle; }
+        tr:last-child td { border-bottom: none; }
+        .empty { color: #aaa; text-align: center; padding: 40px; }
+        .badge { display: inline-block; padding: 3px 9px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+        .badge-admin  { background: #fde8ff; color: #7e22ce; }
+        .badge-odonto { background: #d1fae5; color: #065f46; }
+        .badge-recep  { background: #e0f2fe; color: #0369a1; }
+        .badge-activo   { background: #d4edda; color: #155724; }
+        .badge-inactivo { background: #f8d7da; color: #721c24; }
+        .action-btns { display: flex; gap: 5px; flex-wrap: wrap; }
+        .btn-icon { border: none; border-radius: 4px; cursor: pointer; font-size: 11px;
+                    padding: 4px 9px; font-weight: 500; white-space: nowrap; }
+        .btn-view   { background: #e8f4fd; color: #378ADD; }
+        .btn-view:hover   { background: #d0eafa; }
+        .btn-edit   { background: #fff3cd; color: #856404; }
+        .btn-edit:hover   { background: #ffe69c; }
+        .btn-role   { background: #f3e8ff; color: #7e22ce; }
+        .btn-role:hover   { background: #e9d5ff; }
+        .btn-pass   { background: #e0f2fe; color: #0369a1; }
+        .btn-pass:hover   { background: #bae6fd; }
+        .btn-toggle-on  { background: #fde8e8; color: #b91c1c; }
+        .btn-toggle-on:hover  { background: #fcc; }
+        .btn-toggle-off { background: #d4edda; color: #155724; }
+        .btn-toggle-off:hover { background: #b8ddc8; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0;
+                 width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); }
+        .modal-content { background-color: #fff; margin: 5% auto; padding: 20px;
+                         width: 90%; max-width: 540px; border-radius: 8px;
+                         max-height: 90vh; overflow-y: auto; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center;
+                        margin-bottom: 18px; padding-bottom: 10px; border-bottom: 1px solid #e5e5e5; }
+        .modal-header h2 { font-size: 18px; }
+        .close { font-size: 26px; font-weight: bold; cursor: pointer; color: #aaa; line-height: 1; }
+        .close:hover { color: #000; }
+        .form-group { margin-bottom: 14px; }
+        .form-group label { display: block; margin-bottom: 5px; font-size: 13px; font-weight: 600; color: #555; }
+        .form-group input, .form-group select {
+            width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }
+        .form-group input:disabled { background: #f5f5f5; color: #888; cursor: not-allowed; }
+        .form-group input.input-error { border-color: #e53e3e; }
+        .form-group input.input-ok    { border-color: #38a169; }
+        .field-error { font-size: 11px; color: #e53e3e; margin-top: 3px; display: none; }
+        .field-error.visible { display: block; }
+        .form-row { display: flex; gap: 15px; }
+        .form-row .form-group { flex: 1; }
+        .dni-group { display: flex; gap: 8px; align-items: flex-end; }
+        .dni-group input { flex: 1; }
+        .btn-validate { background: #378ADD; color: white; border: none; padding: 8px 14px;
+                        border-radius: 4px; cursor: pointer; font-size: 13px; white-space: nowrap; }
+        .btn-validate:hover { background: #2b6cb0; }
+        .btn-validate:disabled { background: #aaa; cursor: not-allowed; }
+        .btn-submit { background: #378ADD; color: white; border: none; padding: 10px 20px;
+                      border-radius: 4px; cursor: pointer; font-size: 14px; width: 100%; margin-top: 4px; }
+        .btn-submit:hover { background: #2b6cb0; }
+        .btn-submit:disabled { background: #aaa; cursor: not-allowed; }
+        .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 24px; }
+        .detail-item label { font-size: 11px; font-weight: 600; color: #888; text-transform: uppercase;
+                             display: block; margin-bottom: 3px; }
+        .detail-item span { font-size: 14px; color: #111; }
+        .detail-item.full { grid-column: 1 / -1; }
+        .detail-divider { grid-column: 1 / -1; border: none; border-top: 1px solid #eee; margin: 2px 0; }
+        .confirm-body { padding: 10px 0 20px; font-size: 14px; color: #333; line-height: 1.6; }
+        .confirm-btns { display: flex; gap: 10px; justify-content: flex-end; }
+        .btn-cancel-confirm { background: none; border: 1px solid #ddd; color: #555; padding: 8px 16px;
+                              border-radius: 4px; cursor: pointer; font-size: 14px; }
+        .btn-cancel-confirm:hover { background: #f5f5f5; }
+        .btn-danger { background: #b91c1c; color: white; border: none; padding: 8px 16px;
+                      border-radius: 4px; cursor: pointer; font-size: 14px; }
+        .btn-danger:hover { background: #991b1b; }
+        .btn-success { background: #155724; color: white; border: none; padding: 8px 16px;
+                       border-radius: 4px; cursor: pointer; font-size: 14px; }
+        .btn-success:hover { background: #0f3d1a; }
+        .btn-purple { background: #7e22ce; color: white; border: none; padding: 8px 16px;
+                      border-radius: 4px; cursor: pointer; font-size: 14px; }
+        .btn-purple:hover { background: #6b21a8; }
+        .alert { padding: 10px; border-radius: 4px; margin-bottom: 14px; font-size: 13px; }
+        .alert-error   { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .alert-info    { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .hint { font-size: 11px; color: #888; margin-top: 3px; }
+    </style>
+</head>
+<body>
+<!-- SIDEBAR -->
+<aside class="sidebar">
+    <div class="sidebar-brand">
+        Sonriapp
+        <span>Panel de control</span>
+    </div>
+    <nav class="nav-section">
+        <a class="nav-item" th:href="@{/dashboard}">Dashboard</a>
+        <a class="nav-item" th:href="@{/pacientes}">Pacientes</a>
+        <a class="nav-item" th:href="@{/citas}">Citas</a>
+        <a class="nav-item" sec:authorize="hasAnyRole('Odontologo','Administrador')"
+           th:href="@{/servicios}">Servicios</a>
+        <a class="nav-item active" sec:authorize="hasRole('Administrador')"
+           th:href="@{/usuarios}">Usuarios</a>
+    </nav>
+    <div class="nav-bottom">
+        <div class="user-info">
+            <strong th:text="${#authentication.name}">usuario@gmail.com</strong>
+            <span th:text="${rol}">Rol</span>
+        </div>
+        <a class="logout-btn" th:href="@{/logout}">Cerrar sesión</a>
+    </div>
+</aside>
+<!-- MAIN -->
+<main class="main">
+    <div class="page-header">
+        <div class="page-title">Usuarios</div>
+        <button class="btn-primary" onclick="abrirModalCrear()">+ Nuevo Usuario</button>
+    </div>
+    <!-- Filtros -->
+    <div class="filters">
+        <div class="filter-group">
+            <label>Nombre / Apellido</label>
+            <input type="text" id="filtroNombre" placeholder="Buscar…" oninput="filtrarTabla()">
+        </div>
+        <div class="filter-group">
+            <label>DNI</label>
+            <input type="text" id="filtroDni" placeholder="Buscar DNI…" oninput="filtrarTabla()">
+        </div>
+        <div class="filter-group">
+            <label>Rol</label>
+            <select id="filtroRol" onchange="filtrarTabla()">
+                <option value="">Todos</option>
+                <option th:each="r : ${roles}" th:value="${r.nombre}" th:text="${r.nombre}"></option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Estado</label>
+            <select id="filtroEstado" onchange="filtrarTabla()">
+                <option value="">Todos</option>
+                <option value="activo">Activo</option>
+                <option value="inactivo">Inactivo</option>
+            </select>
+        </div>
+        <button class="btn-clear" onclick="limpiarFiltros()">Limpiar</button>
+        <span class="filter-count" id="filtroConteo"></span>
+    </div>
+    <!-- Tabla -->
+    <div class="table-wrap">
+        <table>
+            <thead>
+            <tr>
+                <th>Nombre completo</th>
+                <th>DNI</th>
+                <th>Correo</th>
+                <th>Rol</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+            </tr>
+            </thead>
+            <tbody id="cuerpoTabla">
+            <tr th:if="${#lists.isEmpty(usuarios)}">
+                <td colspan="6" class="empty">No hay usuarios registrados</td>
+            </tr>
+            <tr th:each="u : ${usuarios}"
+                th:data-id="${u.id}"
+                th:data-nombre="${u.nombre}"
+                th:data-apellido="${u.apellido}"
+                th:data-dni="${u.dni}"
+                th:data-rol="${u.rol.nombre}"
+                th:data-activo="${u.activo}">
+                <td th:text="${u.nombre + ' ' + u.apellido}"></td>
+                <td th:text="${u.dni}"></td>
+                <td th:text="${u.correo}"></td>
+                <td>
+                    <span class="badge"
+                          th:classappend="${u.rol.nombre == 'Administrador'} ? 'badge-admin'
+                                        : (${u.rol.nombre == 'Odontologo'} ? 'badge-odonto' : 'badge-recep')"
+                          th:text="${u.rol.nombre}"></span>
+                </td>
+                <td>
+                    <span class="badge"
+                          th:classappend="${u.activo} ? 'badge-activo' : 'badge-inactivo'"
+                          th:text="${u.activo} ? 'Activo' : 'Inactivo'"></span>
+                </td>
+                <td>
+                    <div class="action-btns">
+                        <button class="btn-icon btn-view"  data-action="ver">Ver</button>
+                        <button class="btn-icon btn-edit"  data-action="editar">Editar</button>
+                        <button class="btn-icon btn-role"  data-action="rol">Rol</button>
+                        <button class="btn-icon btn-pass"  data-action="password">Contraseña</button>
+                        <button class="btn-icon"
+                                th:classappend="${u.activo} ? 'btn-toggle-on' : 'btn-toggle-off'"
+                                data-action="toggle"
+                                th:text="${u.activo} ? 'Desactivar' : 'Activar'">
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+
+<!-- MODAL CREAR -->
+<div id="modalCrear" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Nuevo Usuario</h2>
+            <span class="close" onclick="cerrarModal('modalCrear')">&times;</span>
+        </div>
+        <div id="alertaCrear"></div>
+        <form id="formCrear" onsubmit="guardarUsuario(event)">
+            <div class="form-group">
+                <label>DNI *</label>
+                <div class="dni-group">
+                    <input type="text" id="c_dni" maxlength="15" placeholder="Ingrese DNI" required
+                           oninput="this.value=this.value.replace(/\D/g,'')">
+                    <button type="button" class="btn-validate" id="btnValidarDni" onclick="validarDni()">
+                        Validar DNI
+                    </button>
+                </div>
+                <div class="hint">Ingrese el DNI y haga clic en "Validar DNI" para autocompletar.</div>
+                <div class="field-error" id="err_c_dni"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Nombre *</label>
+                    <input type="text" id="c_nombre" maxlength="100" required disabled
+                           placeholder="Se completa automáticamente"
+                           oninput="limpiarError('err_c_nombre', this)">
+                    <div class="field-error" id="err_c_nombre"></div>
+                </div>
+                <div class="form-group">
+                    <label>Apellido *</label>
+                    <input type="text" id="c_apellido" maxlength="100" required disabled
+                           placeholder="Se completa automáticamente"
+                           oninput="limpiarError('err_c_apellido', this)">
+                    <div class="field-error" id="err_c_apellido"></div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Correo electrónico *</label>
+                <input type="email" id="c_correo" maxlength="150" required
+                       placeholder="correo@ejemplo.com"
+                       oninput="limpiarError('err_c_correo', this)">
+                <div class="hint">Se enviará un enlace a este correo para activar la cuenta.</div>
+                <div class="field-error" id="err_c_correo"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Teléfono</label>
+                    <input type="text" id="c_telefono" maxlength="9" placeholder="9 dígitos"
+                           oninput="this.value=this.value.replace(/\D/g,''); limpiarError('err_c_telefono', this)">
+                    <div class="field-error" id="err_c_telefono"></div>
+                </div>
+                <div class="form-group">
+                    <label>Fecha de nacimiento *</label>
+                    <input type="date" id="c_fechaNacimiento" required
+                           oninput="limpiarError('err_c_fecha', this)">
+                    <div class="field-error" id="err_c_fecha"></div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Rol *</label>
+                <select id="c_rol" required>
+                    <option value="">— Seleccione un rol —</option>
+                    <option th:each="r : ${roles}" th:value="${r.id}" th:text="${r.nombre}"></option>
+                </select>
+                <div class="field-error" id="err_c_rol"></div>
+            </div>
+            <div class="alert alert-info" style="font-size:12px; margin-bottom:10px;">
+                La contraseña será establecida por el usuario al activar su cuenta por correo.
+                La cuenta quedará inactiva hasta completar la activación.
+            </div>
+            <button type="submit" class="btn-submit" id="btnGuardarUsuario">Crear Usuario y Enviar Correo</button>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL VER -->
+<div id="modalVer" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Detalle del Usuario</h2>
+            <span class="close" onclick="cerrarModal('modalVer')">&times;</span>
+        </div>
+        <div id="detalleUsuario" class="detail-grid"></div>
+    </div>
+</div>
+
+<!-- MODAL EDITAR -->
+<div id="modalEditar" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Editar Usuario</h2>
+            <span class="close" onclick="cerrarModal('modalEditar')">&times;</span>
+        </div>
+        <div id="alertaEditar"></div>
+        <form id="formEditar" onsubmit="actualizarUsuario(event)">
+            <input type="hidden" id="e_id">
+            <div class="form-group">
+                <label>DNI *</label>
+                <input type="text" id="e_dni" maxlength="15" required
+                       oninput="this.value=this.value.replace(/\D/g,''); limpiarError('err_e_dni', this)">
+                <div class="field-error" id="err_e_dni"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Nombre *</label>
+                    <input type="text" id="e_nombre" maxlength="100" required
+                           oninput="limpiarError('err_e_nombre', this)">
+                    <div class="field-error" id="err_e_nombre"></div>
+                </div>
+                <div class="form-group">
+                    <label>Apellido *</label>
+                    <input type="text" id="e_apellido" maxlength="100" required
+                           oninput="limpiarError('err_e_apellido', this)">
+                    <div class="field-error" id="err_e_apellido"></div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Correo electrónico *</label>
+                <input type="email" id="e_correo" maxlength="150" required
+                       oninput="limpiarError('err_e_correo', this)">
+                <div class="field-error" id="err_e_correo"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Teléfono</label>
+                    <input type="text" id="e_telefono" maxlength="9"
+                           oninput="this.value=this.value.replace(/\D/g,''); limpiarError('err_e_telefono', this)">
+                    <div class="field-error" id="err_e_telefono"></div>
+                </div>
+                <div class="form-group">
+                    <label>Fecha de nacimiento *</label>
+                    <input type="date" id="e_fechaNacimiento" required
+                           oninput="limpiarError('err_e_fecha', this)">
+                    <div class="field-error" id="err_e_fecha"></div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Rol *</label>
+                <select id="e_rol" required>
+                    <option th:each="r : ${roles}" th:value="${r.id}" th:text="${r.nombre}"></option>
+                </select>
+            </div>
+            <button type="submit" class="btn-submit" id="btnActualizarUsuario">Guardar Cambios</button>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL CAMBIAR ROL -->
+<div id="modalRol" class="modal">
+    <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-header">
+            <h2>Cambiar Rol</h2>
+            <span class="close" onclick="cerrarModal('modalRol')">&times;</span>
+        </div>
+        <div id="alertaRol"></div>
+        <div class="confirm-body">Cambiar rol de <strong id="nombreRol"></strong>:</div>
+        <div class="form-group" style="margin-bottom: 20px;">
+            <label>Nuevo rol</label>
+            <select id="nuevoRol">
+                <option th:each="r : ${roles}" th:value="${r.id}" th:text="${r.nombre}"></option>
+            </select>
+        </div>
+        <div class="confirm-btns">
+            <button class="btn-cancel-confirm" onclick="cerrarModal('modalRol')">Cancelar</button>
+            <button class="btn-purple" id="btnConfirmarRol">Cambiar Rol</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL CONTRASEÑA -->
+<div id="modalPassword" class="modal">
+    <div class="modal-content" style="max-width: 420px;">
+        <div class="modal-header">
+            <h2>Cambiar Contraseña</h2>
+            <span class="close" onclick="cerrarModal('modalPassword')">&times;</span>
+        </div>
+        <div id="alertaPassword"></div>
+        <div class="confirm-body">
+            Se enviará un correo a <strong id="correoPassword"></strong> con un enlace para
+            que el usuario establezca su nueva contraseña. El enlace será válido por <strong>24 horas</strong>.
+            <br><br>¿Desea continuar?
+        </div>
+        <div class="confirm-btns">
+            <button class="btn-cancel-confirm" onclick="cerrarModal('modalPassword')">Cancelar</button>
+            <button id="btnConfirmarPassword"
+                    style="background:#0369a1;color:white;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;font-size:14px;">
+                Enviar correo
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL TOGGLE ESTADO -->
+<div id="modalToggle" class="modal">
+    <div class="modal-content" style="max-width: 420px;">
+        <div class="modal-header">
+            <h2 id="tituloToggle">Confirmar acción</h2>
+            <span class="close" onclick="cerrarModal('modalToggle')">&times;</span>
+        </div>
+        <div id="alertaToggle"></div>
+        <div class="confirm-body" id="textoToggle"></div>
+        <div class="confirm-btns">
+            <button class="btn-cancel-confirm" onclick="cerrarModal('modalToggle')">Cancelar</button>
+            <button id="btnConfirmarToggle" class="btn-danger">Confirmar</button>
+        </div>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    // ── Helpers generales ────────────────────────────────────────────────────────
+    function cerrarModal(id) { document.getElementById(id).style.display = 'none'; }
+    window.onclick = function(e) {
+        ['modalCrear','modalVer','modalEditar','modalRol','modalPassword','modalToggle'].forEach(function(id) {
+            if (e.target === document.getElementById(id)) cerrarModal(id);
+        });
+    };
+    function mostrarAlerta(contId, mensaje, tipo) {
+        var div = document.getElementById(contId);
+        var cls = tipo === 'error' ? 'alert-error' : tipo === 'success' ? 'alert-success' : 'alert-info';
+        div.innerHTML = '<div class="alert ' + cls + '">' + mensaje + '</div>';
+        if (tipo !== 'error') setTimeout(function() { div.innerHTML = ''; }, 4000);
+    }
+    function mostrarError(errId, mensaje) {
+        var el = document.getElementById(errId);
+        if (!el) return;
+        el.textContent = mensaje;
+        el.classList.add('visible');
+    }
+    function limpiarError(errId, input) {
+        var el = document.getElementById(errId);
+        if (el) { el.textContent = ''; el.classList.remove('visible'); }
+        if (input) { input.classList.remove('input-error'); }
+    }
+    function setBtnLoading(btnId, loading, textoOriginal) {
+        var btn = document.getElementById(btnId);
+        if (!btn) return;
+        btn.disabled = loading;
+        btn.textContent = loading ? 'Guardando...' : textoOriginal;
+    }
+    function rolBadge(nombre) {
+        var cls = nombre === 'Administrador' ? 'badge-admin' : (nombre === 'Odontologo' ? 'badge-odonto' : 'badge-recep');
+        return '<span class="badge ' + cls + '">' + nombre + '</span>';
+    }
+    // ── Validaciones cliente ──────────────────────────────────────────────────────
+    function validarFormCrear() {
+        var ok = true;
+        var dni     = document.getElementById('c_dni').value.trim();
+        var nombre  = document.getElementById('c_nombre').value.trim();
+        var apellido= document.getElementById('c_apellido').value.trim();
+        var correo  = document.getElementById('c_correo').value.trim();
+        var telefono= document.getElementById('c_telefono').value.trim();
+        var fecha   = document.getElementById('c_fechaNacimiento').value;
+        var rol     = document.getElementById('c_rol').value;
+
+        if (dni.length < 8) { mostrarError('err_c_dni', 'El DNI debe tener al menos 8 caracteres'); ok = false; }
+        if (nombre.length < 2) { mostrarError('err_c_nombre', 'Ingrese el nombre (mínimo 2 caracteres)'); ok = false; }
+        if (apellido.length < 2) { mostrarError('err_c_apellido', 'Ingrese el apellido (mínimo 2 caracteres)'); ok = false; }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) { mostrarError('err_c_correo', 'Ingrese un correo válido'); ok = false; }
+        if (telefono !== '' && !/^\d{9}$/.test(telefono)) { mostrarError('err_c_telefono', 'El teléfono debe tener exactamente 9 dígitos'); ok = false; }
+        if (!fecha) { mostrarError('err_c_fecha', 'Ingrese la fecha de nacimiento'); ok = false; }
+        else {
+            var hoy = new Date(); var fn = new Date(fecha);
+            if (fn >= hoy) { mostrarError('err_c_fecha', 'La fecha debe ser en el pasado'); ok = false; }
+        }
+        if (!rol) { mostrarError('err_c_rol', 'Seleccione un rol'); ok = false; }
+        return ok;
+    }
+    function validarFormEditar() {
+        var ok = true;
+        var dni     = document.getElementById('e_dni').value.trim();
+        var nombre  = document.getElementById('e_nombre').value.trim();
+        var apellido= document.getElementById('e_apellido').value.trim();
+        var correo  = document.getElementById('e_correo').value.trim();
+        var telefono= document.getElementById('e_telefono').value.trim();
+        var fecha   = document.getElementById('e_fechaNacimiento').value;
+
+        if (dni.length < 8) { mostrarError('err_e_dni', 'El DNI debe tener al menos 8 caracteres'); ok = false; }
+        if (nombre.length < 2) { mostrarError('err_e_nombre', 'Ingrese el nombre (mínimo 2 caracteres)'); ok = false; }
+        if (apellido.length < 2) { mostrarError('err_e_apellido', 'Ingrese el apellido (mínimo 2 caracteres)'); ok = false; }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) { mostrarError('err_e_correo', 'Ingrese un correo válido'); ok = false; }
+        if (telefono !== '' && !/^\d{9}$/.test(telefono)) { mostrarError('err_e_telefono', 'El teléfono debe tener exactamente 9 dígitos'); ok = false; }
+        if (!fecha) { mostrarError('err_e_fecha', 'Ingrese la fecha de nacimiento'); ok = false; }
+        else {
+            var hoy = new Date(); var fn = new Date(fecha);
+            if (fn >= hoy) { mostrarError('err_e_fecha', 'La fecha debe ser en el pasado'); ok = false; }
+        }
+        return ok;
+    }
+    // ── Delegación de eventos en tabla ───────────────────────────────────────────
+    document.getElementById('cuerpoTabla').addEventListener('click', function(e) {
+        var btn = e.target.closest('[data-action]');
+        if (!btn) return;
+        var fila   = btn.closest('tr');
+        var id     = fila.dataset.id;
+        var nombre = fila.dataset.nombre + ' ' + fila.dataset.apellido;
+        var accion = btn.dataset.action;
+        if (accion === 'ver')      abrirModalVer(id);
+        if (accion === 'editar')   abrirModalEditar(id);
+        if (accion === 'rol')      abrirModalRol(id, nombre, fila.dataset.rol);
+        if (accion === 'password') abrirModalPassword(id, nombre);
+        if (accion === 'toggle')   abrirModalToggle(id, nombre, fila.dataset.activo === 'true');
+    });
+    // ── Modal CREAR ───────────────────────────────────────────────────────────────
+    var dniValidado = false;
+    function abrirModalCrear() {
+        document.getElementById('formCrear').reset();
+        document.getElementById('alertaCrear').innerHTML = '';
+        ['err_c_dni','err_c_nombre','err_c_apellido','err_c_correo','err_c_telefono','err_c_fecha','err_c_rol']
+            .forEach(function(id) { limpiarError(id, null); });
+        document.getElementById('c_nombre').disabled  = true;
+        document.getElementById('c_apellido').disabled = true;
+        dniValidado = false;
+        document.getElementById('modalCrear').style.display = 'block';
+    }
+    async function validarDni() {
+        var dni = document.getElementById('c_dni').value.trim();
+        if (dni.length < 8) {
+            mostrarAlerta('alertaCrear', 'Ingrese un DNI válido (mínimo 8 caracteres)', 'error');
+            return;
+        }
+        var btn = document.getElementById('btnValidarDni');
+        btn.disabled = true;
+        btn.textContent = 'Consultando...';
+        mostrarAlerta('alertaCrear', 'Consultando RENIEC...', 'info');
+        try {
+            var resp = await fetch('/reniec/consultar?dni=' + encodeURIComponent(dni));
+            var data = await resp.json();
+            if (resp.ok && data.nombre) {
+                document.getElementById('c_nombre').value   = data.nombre;
+                document.getElementById('c_apellido').value = data.apellido || '';
+                document.getElementById('c_nombre').disabled  = true;
+                document.getElementById('c_apellido').disabled = true;
+                dniValidado = true;
+                mostrarAlerta('alertaCrear', 'DNI validado: ' + data.nombre + ' ' + (data.apellido || ''), 'success');
+            } else {
+                // Permitir ingreso manual si RENIEC falla
+                document.getElementById('c_nombre').disabled  = false;
+                document.getElementById('c_apellido').disabled = false;
+                document.getElementById('c_nombre').value   = '';
+                document.getElementById('c_apellido').value = '';
+                mostrarAlerta('alertaCrear', 'No se pudo consultar RENIEC. Complete el nombre manualmente.', 'info');
+            }
+        } catch (err) {
+            document.getElementById('c_nombre').disabled  = false;
+            document.getElementById('c_apellido').disabled = false;
+            mostrarAlerta('alertaCrear', 'Error al consultar RENIEC. Complete el nombre manualmente.', 'info');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Validar DNI';
+        }
+    }
+    async function guardarUsuario(e) {
+        e.preventDefault();
+        if (!validarFormCrear()) return;
+        setBtnLoading('btnGuardarUsuario', true, 'Crear Usuario y Enviar Correo');
+        var body = {
+            dni:             document.getElementById('c_dni').value.trim(),
+            nombre:          document.getElementById('c_nombre').value.trim(),
+            apellido:        document.getElementById('c_apellido').value.trim(),
+            correo:          document.getElementById('c_correo').value.trim(),
+            telefono:        document.getElementById('c_telefono').value.trim() || null,
+            fechaNacimiento: document.getElementById('c_fechaNacimiento').value,
+            rolId:           parseInt(document.getElementById('c_rol').value)
+        };
+        try {
+            var resp = await fetch('/usuarios/guardar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            var data = await resp.json();
+            if (resp.ok && data.success) {
+                mostrarAlerta('alertaCrear', data.message, 'success');
+                setTimeout(function() { location.reload(); }, 2000);
+            } else {
+                mostrarAlerta('alertaCrear', data.error || 'Error al crear usuario', 'error');
+                setBtnLoading('btnGuardarUsuario', false, 'Crear Usuario y Enviar Correo');
+            }
+        } catch (err) {
+            mostrarAlerta('alertaCrear', 'Error al conectar con el servidor', 'error');
+            setBtnLoading('btnGuardarUsuario', false, 'Crear Usuario y Enviar Correo');
+        }
+    }
+    // ── Modal VER ─────────────────────────────────────────────────────────────────
+    async function abrirModalVer(id) {
+        document.getElementById('detalleUsuario').innerHTML = '<p style="color:#888;padding:10px">Cargando...</p>';
+        document.getElementById('modalVer').style.display = 'block';
+        try {
+            var resp = await fetch('/usuarios/' + id);
+            if (!resp.ok) { document.getElementById('detalleUsuario').innerHTML = '<p style="color:#e53e3e">No se pudo cargar el usuario</p>'; return; }
+            var u = await resp.json();
+            document.getElementById('detalleUsuario').innerHTML =
+                '<div class="detail-item"><label>Nombre</label><span>' + u.nombre + '</span></div>' +
+                '<div class="detail-item"><label>Apellido</label><span>' + u.apellido + '</span></div>' +
+                '<div class="detail-item"><label>DNI</label><span>' + u.dni + '</span></div>' +
+                '<div class="detail-item"><label>Correo</label><span>' + u.correo + '</span></div>' +
+                '<div class="detail-item"><label>Teléfono</label><span>' + (u.telefono || '—') + '</span></div>' +
+                '<div class="detail-item"><label>Nacimiento</label><span>' + (u.fechaNacimiento ? formatFecha(u.fechaNacimiento) : '—') + '</span></div>' +
+                '<hr class="detail-divider">' +
+                '<div class="detail-item"><label>Rol</label><span>' + rolBadge(u.rol.nombre) + '</span></div>' +
+                '<div class="detail-item"><label>Estado</label><span class="badge ' + (u.activo ? 'badge-activo' : 'badge-inactivo') + '">' + (u.activo ? 'Activo' : 'Inactivo') + '</span></div>';
+        } catch (err) {
+            document.getElementById('detalleUsuario').innerHTML = '<p style="color:#e53e3e">Error al cargar datos</p>';
+        }
+    }
+    // ── Modal EDITAR ──────────────────────────────────────────────────────────────
+    async function abrirModalEditar(id) {
+        document.getElementById('alertaEditar').innerHTML = '';
+        document.getElementById('modalEditar').style.display = 'block';
+        ['err_e_dni','err_e_nombre','err_e_apellido','err_e_correo','err_e_telefono','err_e_fecha']
+            .forEach(function(eid) { limpiarError(eid, null); });
+        try {
+            var resp = await fetch('/usuarios/' + id);
+            if (!resp.ok) { mostrarAlerta('alertaEditar', 'No se pudo cargar el usuario', 'error'); return; }
+            var u = await resp.json();
+            document.getElementById('e_id').value              = u.id;
+            document.getElementById('e_dni').value             = u.dni;
+            document.getElementById('e_nombre').value          = u.nombre;
+            document.getElementById('e_apellido').value        = u.apellido;
+            document.getElementById('e_correo').value          = u.correo;
+            document.getElementById('e_telefono').value        = u.telefono || '';
+            document.getElementById('e_fechaNacimiento').value = u.fechaNacimiento || '';
+            document.getElementById('e_rol').value             = u.rol.id;
+        } catch (err) {
+            mostrarAlerta('alertaEditar', 'Error al cargar datos del usuario', 'error');
+        }
+    }
+    async function actualizarUsuario(e) {
+        e.preventDefault();
+        if (!validarFormEditar()) return;
+        var id = document.getElementById('e_id').value;
+        setBtnLoading('btnActualizarUsuario', true, 'Guardar Cambios');
+        var body = {
+            dni:             document.getElementById('e_dni').value.trim(),
+            nombre:          document.getElementById('e_nombre').value.trim(),
+            apellido:        document.getElementById('e_apellido').value.trim(),
+            correo:          document.getElementById('e_correo').value.trim(),
+            telefono:        document.getElementById('e_telefono').value.trim() || null,
+            fechaNacimiento: document.getElementById('e_fechaNacimiento').value,
+            rolId:           parseInt(document.getElementById('e_rol').value)
+        };
+        try {
+            var resp = await fetch('/usuarios/' + id + '/editar', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            var data = await resp.json();
+            if (resp.ok && data.success) {
+                mostrarAlerta('alertaEditar', 'Usuario actualizado correctamente', 'success');
+                setTimeout(function() { location.reload(); }, 1500);
+            } else {
+                mostrarAlerta('alertaEditar', data.error || 'Error al actualizar', 'error');
+                setBtnLoading('btnActualizarUsuario', false, 'Guardar Cambios');
+            }
+        } catch (err) {
+            mostrarAlerta('alertaEditar', 'Error al conectar con el servidor', 'error');
+            setBtnLoading('btnActualizarUsuario', false, 'Guardar Cambios');
+        }
+    }
+    // ── Modal ROL ─────────────────────────────────────────────────────────────────
+    var idParaRol = null;
+    function abrirModalRol(id, nombre, rolActual) {
+        idParaRol = id;
+        document.getElementById('nombreRol').textContent = nombre;
+        document.getElementById('alertaRol').innerHTML = '';
+        var sel = document.getElementById('nuevoRol');
+        for (var i = 0; i < sel.options.length; i++) {
+            if (sel.options[i].text === rolActual) { sel.selectedIndex = i; break; }
+        }
+        document.getElementById('modalRol').style.display = 'block';
+    }
+    document.getElementById('btnConfirmarRol').addEventListener('click', async function() {
+        if (!idParaRol) return;
+        this.disabled = true; this.textContent = 'Guardando...';
+        var rolId = parseInt(document.getElementById('nuevoRol').value);
+        try {
+            var resp = await fetch('/usuarios/' + idParaRol + '/rol', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ rolId: rolId })
+            });
+            var data = await resp.json();
+            if (resp.ok && data.success) {
+                mostrarAlerta('alertaRol', 'Rol actualizado correctamente', 'success');
+                setTimeout(function() { location.reload(); }, 1500);
+            } else {
+                mostrarAlerta('alertaRol', data.error || 'Error al cambiar el rol', 'error');
+                this.disabled = false; this.textContent = 'Cambiar Rol';
+            }
+        } catch (err) {
+            mostrarAlerta('alertaRol', 'Error al conectar con el servidor', 'error');
+            this.disabled = false; this.textContent = 'Cambiar Rol';
+        }
+    });
+    // ── Modal PASSWORD ────────────────────────────────────────────────────────────
+    var idParaPassword = null;
+    async function abrirModalPassword(id, nombre) {
+        idParaPassword = id;
+        document.getElementById('alertaPassword').innerHTML = '';
+        document.getElementById('correoPassword').textContent = 'cargando...';
+        document.getElementById('modalPassword').style.display = 'block';
+        try {
+            var resp = await fetch('/usuarios/' + id);
+            var u = await resp.json();
+            document.getElementById('correoPassword').textContent = u.correo;
+        } catch (e) {
+            document.getElementById('correoPassword').textContent = nombre;
+        }
+    }
+    document.getElementById('btnConfirmarPassword').addEventListener('click', async function() {
+        if (!idParaPassword) return;
+        this.disabled = true; this.textContent = 'Enviando...';
+        try {
+            var resp = await fetch('/usuarios/' + idParaPassword + '/reset-password', { method: 'POST' });
+            var data = await resp.json();
+            if (resp.ok && data.success) {
+                mostrarAlerta('alertaPassword', data.message, 'success');
+                setTimeout(function() { cerrarModal('modalPassword'); }, 3000);
+            } else {
+                mostrarAlerta('alertaPassword', data.error || 'No se pudo enviar el correo', 'error');
+            }
+        } catch (err) {
+            mostrarAlerta('alertaPassword', 'Error al conectar con el servidor', 'error');
+        } finally {
+            this.disabled = false; this.textContent = 'Enviar correo';
+        }
+    });
+    // ── Modal TOGGLE ──────────────────────────────────────────────────────────────
+    var idParaToggle = null;
+    function abrirModalToggle(id, nombre, activo) {
+        idParaToggle = id;
+        document.getElementById('alertaToggle').innerHTML = '';
+        var btnT = document.getElementById('btnConfirmarToggle');
+        if (activo) {
+            document.getElementById('tituloToggle').textContent = 'Desactivar usuario';
+            document.getElementById('textoToggle').innerHTML =
+                '¿Está seguro que desea <strong>desactivar</strong> la cuenta de <strong>' + nombre + '</strong>?<br><br>' +
+                'El usuario no podrá iniciar sesión hasta que sea reactivado.';
+            btnT.className = 'btn-danger';
+            btnT.textContent = 'Desactivar';
+        } else {
+            document.getElementById('tituloToggle').textContent = 'Activar usuario';
+            document.getElementById('textoToggle').innerHTML =
+                '¿Está seguro que desea <strong>activar</strong> la cuenta de <strong>' + nombre + '</strong>?<br><br>' +
+                'El usuario podrá iniciar sesión nuevamente.';
+            btnT.className = 'btn-success';
+            btnT.textContent = 'Activar';
+        }
+        document.getElementById('modalToggle').style.display = 'block';
+    }
+    document.getElementById('btnConfirmarToggle').addEventListener('click', async function() {
+        if (!idParaToggle) return;
+        this.disabled = true; this.textContent = 'Procesando...';
+        try {
+            var resp = await fetch('/usuarios/' + idParaToggle + '/toggle-activo', { method: 'PATCH' });
+            var data = await resp.json();
+            if (resp.ok && data.success) {
+                mostrarAlerta('alertaToggle', 'Estado actualizado correctamente', 'success');
+                setTimeout(function() { location.reload(); }, 1500);
+            } else {
+                mostrarAlerta('alertaToggle', data.error || 'No se pudo actualizar el estado', 'error');
+                this.disabled = false;
+            }
+        } catch (err) {
+            mostrarAlerta('alertaToggle', 'Error al conectar con el servidor', 'error');
+            this.disabled = false;
+        }
+    });
+    // ── Filtros ───────────────────────────────────────────────────────────────────
+    function filtrarTabla() {
+        var nombre  = document.getElementById('filtroNombre').value.trim().toLowerCase();
+        var dni     = document.getElementById('filtroDni').value.trim().toLowerCase();
+        var rol     = document.getElementById('filtroRol').value;
+        var estado  = document.getElementById('filtroEstado').value;
+        var filas   = document.querySelectorAll('#cuerpoTabla tr[data-id]');
+        var visibles = 0;
+        filas.forEach(function(fila) {
+            var fNombre = (fila.dataset.nombre + ' ' + fila.dataset.apellido).toLowerCase();
+            var fDni    = (fila.dataset.dni || '').toLowerCase();
+            var fRol    = fila.dataset.rol || '';
+            var fActivo = fila.dataset.activo === 'true';
+            var coincide =
+                (!nombre || fNombre.includes(nombre)) &&
+                (!dni    || fDni.includes(dni)) &&
+                (!rol    || fRol === rol) &&
+                (!estado || (estado === 'activo' ? fActivo : !fActivo));
+            fila.style.display = coincide ? '' : 'none';
+            if (coincide) visibles++;
+        });
+        var total = filas.length;
+        document.getElementById('filtroConteo').textContent =
+            total > 0 ? visibles + ' de ' + total + ' usuario' + (total !== 1 ? 's' : '') : '';
+    }
+    function limpiarFiltros() {
+        document.getElementById('filtroNombre').value = '';
+        document.getElementById('filtroDni').value    = '';
+        document.getElementById('filtroRol').value    = '';
+        document.getElementById('filtroEstado').value = '';
+        filtrarTabla();
+    }
+    function formatFecha(iso) {
+        if (!iso) return '—';
+        var parts = iso.split('-');
+        return parts[2] + '/' + parts[1] + '/' + parts[0];
+    }
+    filtrarTabla();
+    /*]]>*/
+</script>
+</body>
+</html>
