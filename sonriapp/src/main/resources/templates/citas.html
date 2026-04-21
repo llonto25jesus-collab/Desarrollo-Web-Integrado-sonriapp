@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Citas - Sonriapp</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: sans-serif; background: #f5f5f5; display: flex; min-height: 100vh; }
+
+        /* ── Sidebar ── */
+        .sidebar { width: 220px; background: #fff; border-right: 1px solid #e5e5e5;
+                   display: flex; flex-direction: column; padding: 1.5rem 0; flex-shrink: 0; }
+        .sidebar-brand { padding: 0 1.25rem 1.25rem; font-size: 18px; font-weight: 600;
+                         border-bottom: 1px solid #e5e5e5; }
+        .sidebar-brand span { font-size: 12px; color: #888; font-weight: 400; display: block; margin-top: 2px; }
+        .nav-section { padding: 1rem 0; flex: 1; }
+        .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 1.25rem;
+                    font-size: 14px; color: #555; text-decoration: none;
+                    border-left: 2px solid transparent; }
+        .nav-item:hover { background: #f5f5f5; color: #111; }
+        .nav-item.active { color: #111; font-weight: 600; border-left: 2px solid #378ADD; background: #f0f6ff; }
+        .nav-bottom { padding: 1rem 1.25rem; border-top: 1px solid #e5e5e5; margin-top: auto; }
+        .user-info { font-size: 13px; color: #888; margin-bottom: 8px; }
+        .user-info strong { display: block; color: #111; font-size: 14px; }
+        .logout-btn { font-size: 13px; color: #555; text-decoration: none; }
+        .logout-btn:hover { color: #111; }
+
+        /* ── Main ── */
+        .main { flex: 1; padding: 2rem; overflow: auto; }
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; }
+        .page-title { font-size: 20px; font-weight: 600; }
+        .btn-primary { background: #378ADD; color: white; border: none; padding: 8px 16px;
+                       border-radius: 4px; cursor: pointer; font-size: 14px; }
+        .btn-primary:hover { background: #2b6cb0; }
+
+        /* ── Tabs ── */
+        .tabs { display: flex; gap: 0; border-bottom: 2px solid #e5e5e5; margin-bottom: 1.25rem; }
+        .tab-btn { background: none; border: none; padding: 10px 20px; font-size: 14px;
+                   cursor: pointer; color: #777; border-bottom: 2px solid transparent; margin-bottom: -2px; }
+        .tab-btn.active { color: #378ADD; font-weight: 600; border-bottom: 2px solid #378ADD; }
+        .tab-btn:hover:not(.active) { color: #333; }
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+
+        /* ── Layout Calendario ── */
+        .cal-layout { display: flex; gap: 1.25rem; align-items: flex-start; }
+        .cal-box { background: #fff; border: 1px solid #e5e5e5; border-radius: 8px;
+                   padding: 16px; flex-shrink: 0; width: 320px; }
+        .cal-side { flex: 1; background: #fff; border: 1px solid #e5e5e5; border-radius: 8px;
+                    padding: 16px; min-height: 360px; }
+        .cal-side-title { font-size: 14px; font-weight: 600; margin-bottom: 12px; color: #444; }
+
+        /* ── Calendario manual ── */
+        .cal-header { display: flex; justify-content: space-between; align-items: center;
+                      margin-bottom: 12px; }
+        .cal-header button { background: none; border: 1px solid #ddd; border-radius: 4px;
+                             cursor: pointer; padding: 4px 10px; font-size: 13px; }
+        .cal-header button:hover { background: #f5f5f5; }
+        .cal-month { font-size: 14px; font-weight: 600; }
+        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+        .cal-dow { text-align: center; font-size: 11px; font-weight: 600; color: #999;
+                   padding: 4px 0; }
+        .cal-day { text-align: center; padding: 6px 2px; font-size: 13px; border-radius: 4px;
+                   cursor: pointer; position: relative; }
+        .cal-day:hover:not(.cal-disabled):not(.cal-other) { background: #e8f4fd; }
+        .cal-day.cal-today { font-weight: 700; color: #378ADD; }
+        .cal-day.cal-selected { background: #378ADD; color: white; border-radius: 4px; }
+        .cal-day.cal-selected:hover { background: #2b6cb0; }
+        .cal-day.cal-disabled { color: #ccc; cursor: default; }
+        .cal-day.cal-other { color: #ddd; cursor: default; }
+        .cal-day.cal-has-citas::after { content: ''; display: block; width: 4px; height: 4px;
+            border-radius: 50%; background: #378ADD; margin: 1px auto 0; }
+        .cal-day.cal-selected.cal-has-citas::after { background: white; }
+
+        /* ── Lista del día (panel derecho del calendario) ── */
+        .cita-card { border: 1px solid #e5e5e5; border-radius: 6px; padding: 10px 12px;
+                     margin-bottom: 8px; font-size: 13px; }
+        .cita-card-header { display: flex; justify-content: space-between; align-items: center;
+                            margin-bottom: 4px; }
+        .cita-hora { font-weight: 700; font-size: 14px; color: #111; }
+        .badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px; }
+        .badge-Pendiente  { background: #fff3cd; color: #856404; }
+        .badge-Completada { background: #d4edda; color: #155724; }
+        .badge-Cancelada  { background: #fde8e8; color: #b91c1c; }
+        .cita-info { color: #555; line-height: 1.5; }
+        .cita-actions { display: flex; gap: 6px; margin-top: 8px; }
+        .btn-icon { border: none; border-radius: 4px; cursor: pointer; font-size: 12px;
+                    padding: 4px 9px; font-weight: 500; }
+        .btn-view   { background: #e8f4fd; color: #378ADD; }
+        .btn-view:hover   { background: #d0eafa; }
+        .btn-edit   { background: #fff3cd; color: #856404; }
+        .btn-edit:hover   { background: #ffe69c; }
+        .btn-status { background: #e9ecef; color: #495057; }
+        .btn-status:hover { background: #dee2e6; }
+        .empty-cal { color: #aaa; text-align: center; padding: 40px 0; font-size: 13px; }
+
+        /* ── Filtros lista ── */
+        .filters { background: #fff; border: 1px solid #e5e5e5; border-radius: 8px;
+                   padding: 14px 16px; margin-bottom: 1.25rem;
+                   display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+        .filter-group { display: flex; flex-direction: column; gap: 4px; }
+        .filter-group label { font-size: 12px; font-weight: 600; color: #666; }
+        .filter-group input,
+        .filter-group select { padding: 7px 10px; border: 1px solid #ddd; border-radius: 4px;
+                               font-size: 13px; background: #fff; width: 150px; }
+        .btn-filter { background: #378ADD; color: white; border: none; padding: 7px 14px;
+                      border-radius: 4px; cursor: pointer; font-size: 13px; }
+        .btn-filter:hover { background: #2b6cb0; }
+        .btn-clear { background: none; border: 1px solid #ddd; color: #555; padding: 7px 12px;
+                     border-radius: 4px; cursor: pointer; font-size: 13px; }
+        .btn-clear:hover { background: #f5f5f5; }
+        .filter-count { font-size: 12px; color: #888; margin-left: auto; align-self: center; }
+
+        /* ── Tabla lista ── */
+        .table-wrap { background: #fff; border: 1px solid #e5e5e5; border-radius: 8px; overflow: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 800px; }
+        th { background: #fafafa; color: #888; font-weight: 500; text-align: left;
+             padding: 10px 14px; border-bottom: 1px solid #e5e5e5; }
+        td { padding: 10px 14px; border-bottom: 1px solid #e5e5e5; vertical-align: middle; }
+        tr:last-child td { border-bottom: none; }
+        .empty { color: #aaa; text-align: center; padding: 40px; }
+        .action-btns { display: flex; gap: 6px; }
+
+        /* ── Tab Horarios ── */
+        .horarios-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+        .horario-card { background: #fff; border: 1px solid #e5e5e5; border-radius: 8px; padding: 14px 16px; }
+        .horario-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .horario-dia { font-size: 14px; font-weight: 600; }
+        .toggle-wrap { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #555; }
+        .toggle { position: relative; display: inline-block; width: 36px; height: 20px; }
+        .toggle input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; inset: 0; background: #ccc; border-radius: 20px; transition: .2s; }
+        .slider:before { content: ''; position: absolute; width: 14px; height: 14px; left: 3px; bottom: 3px;
+                         background: white; border-radius: 50%; transition: .2s; }
+        input:checked + .slider { background: #378ADD; }
+        input:checked + .slider:before { transform: translateX(16px); }
+        .horario-times { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .horario-times label { font-size: 12px; font-weight: 600; color: #666; }
+        .horario-times input[type="time"] { padding: 5px 8px; border: 1px solid #ddd; border-radius: 4px;
+                                            font-size: 13px; width: 110px; }
+        .horario-times input:disabled { background: #f5f5f5; color: #aaa; }
+        .btn-save-horarios { background: #378ADD; color: white; border: none; padding: 9px 20px;
+                             border-radius: 4px; cursor: pointer; font-size: 14px; margin-top: 16px; }
+        .btn-save-horarios:hover { background: #2b6cb0; }
+
+        /* ── Modales ── */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0;
+                 width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
+        .modal-content { background: #fff; margin: 4% auto; padding: 20px;
+                         width: 90%; max-width: 560px; border-radius: 8px;
+                         max-height: 92vh; overflow-y: auto; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center;
+                        margin-bottom: 18px; padding-bottom: 10px; border-bottom: 1px solid #e5e5e5; }
+        .modal-header h2 { font-size: 18px; }
+        .close { font-size: 26px; font-weight: bold; cursor: pointer; color: #aaa; line-height: 1; }
+        .close:hover { color: #000; }
+
+        /* ── Formularios modal ── */
+        .form-group { margin-bottom: 14px; }
+        .form-group label { display: block; margin-bottom: 5px; font-size: 13px; font-weight: 600; color: #555; }
+        .form-group input,
+        .form-group select,
+        .form-group textarea { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }
+        .form-row { display: flex; gap: 15px; }
+        .form-row .form-group { flex: 1; }
+        .btn-submit { background: #378ADD; color: white; border: none; padding: 10px 20px;
+                      border-radius: 4px; cursor: pointer; font-size: 14px; width: 100%; margin-top: 4px; }
+        .btn-submit:hover { background: #2b6cb0; }
+
+        /* ── Buscador dentro del select ── */
+        .searchable-select { position: relative; }
+        .searchable-input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;
+                            font-size: 14px; cursor: pointer; background: #fff; }
+        .searchable-dropdown { display: none; position: absolute; z-index: 100; background: #fff;
+                               border: 1px solid #ddd; border-radius: 4px; width: 100%;
+                               max-height: 180px; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .searchable-dropdown.open { display: block; }
+        .search-filter-inp { width: 100%; padding: 7px 10px; border: none; border-bottom: 1px solid #eee;
+                             font-size: 13px; outline: none; }
+        .sd-option { padding: 8px 10px; font-size: 13px; cursor: pointer; }
+        .sd-option:hover { background: #f0f6ff; }
+        .sd-option.disabled { color: #aaa; cursor: default; background: none; }
+        .sd-empty { padding: 10px; font-size: 13px; color: #aaa; text-align: center; }
+
+        /* ── Modal Ver ── */
+        .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 24px; }
+        .detail-item label { font-size: 11px; font-weight: 600; color: #888; text-transform: uppercase;
+                             display: block; margin-bottom: 3px; }
+        .detail-item span { font-size: 14px; color: #111; }
+        .detail-item.full { grid-column: 1 / -1; }
+        .detail-divider { grid-column: 1 / -1; border: none; border-top: 1px solid #eee; margin: 2px 0; }
+
+        /* ── Alertas ── */
+        .alert { padding: 10px; border-radius: 4px; margin-bottom: 14px; font-size: 13px; }
+        .alert-error   { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .info-box { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb;
+                    padding: 8px 12px; border-radius: 4px; font-size: 12px; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+<!-- ════════════════════════════ SIDEBAR ════════════════════════════ -->
+<aside class="sidebar">
+    <div class="sidebar-brand">
+        Sonriapp
+        <span>Panel de control</span>
+    </div>
+    <nav class="nav-section">
+        <a class="nav-item" th:href="@{/dashboard}">Dashboard</a>
+        <a class="nav-item" th:href="@{/pacientes}">Pacientes</a>
+        <a class="nav-item active" th:href="@{/citas}">Citas</a>
+        <a class="nav-item" sec:authorize="hasAnyRole('Odontologo','Administrador')"
+           th:href="@{/servicios}">Servicios</a>
+        <a class="nav-item" sec:authorize="hasRole('Administrador')"
+           th:href="@{/usuarios}">Usuarios</a>
+    </nav>
+    <div class="nav-bottom">
+        <div class="user-info">
+            <strong th:text="${#authentication.name}">usuario@gmail.com</strong>
+            <span th:text="${rol}">Rol</span>
+        </div>
+        <a class="logout-btn" th:href="@{/logout}">Cerrar sesión →</a>
+    </div>
+</aside>
+
+<!-- ════════════════════════════ MAIN ════════════════════════════════ -->
+<main class="main">
+    <div class="page-header">
+        <div class="page-title">Citas</div>
+        <button class="btn-primary" onclick="abrirModalCrear()">+ Nueva Cita</button>
+    </div>
+
+    <!-- ── Tabs ── -->
+    <div class="tabs">
+        <button class="tab-btn active" onclick="cambiarTab('calendario', this)">Vista Calendario</button>
+        <button class="tab-btn"        onclick="cambiarTab('lista', this)">Lista de Citas</button>
+        <button class="tab-btn"        onclick="cambiarTab('horarios', this)">Horarios del Consultorio</button>
+    </div>
+
+    <!-- ══════════ TAB: CALENDARIO ══════════ -->
+    <div id="tab-calendario" class="tab-panel active">
+        <div class="cal-layout">
+            <!-- Calendario -->
+            <div class="cal-box">
+                <div class="cal-header">
+                    <button onclick="cambiarMes(-1)">&#8592;</button>
+                    <span class="cal-month" id="calMesAnio"></span>
+                    <button onclick="cambiarMes(1)">&#8594;</button>
+                </div>
+                <div class="cal-grid" id="calGrid"></div>
+            </div>
+            <!-- Panel lateral: citas del día seleccionado -->
+            <div class="cal-side">
+                <div class="cal-side-title" id="calSideTitle">Selecciona un día</div>
+                <div id="calSideCitas">
+                    <p class="empty-cal">Haz clic en un día del calendario para ver sus citas</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════ TAB: LISTA ══════════ -->
+    <div id="tab-lista" class="tab-panel">
+        <div class="filters">
+            <div class="filter-group">
+                <label>Paciente</label>
+                <input type="text" id="filtroPaciente" placeholder="Nombre del paciente…">
+            </div>
+            <div class="filter-group">
+                <label>Doctor</label>
+                <input type="text" id="filtroDoctor" placeholder="Nombre del doctor…">
+            </div>
+            <div class="filter-group">
+                <label>Estado</label>
+                <select id="filtroEstado">
+                    <option value="">Todos</option>
+                    <option value="Pendiente">Pendiente</option>
+                    <option value="Completada">Completada</option>
+                    <option value="Cancelada">Cancelada</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Desde</label>
+                <input type="date" id="filtroDesde">
+            </div>
+            <div class="filter-group">
+                <label>Hasta</label>
+                <input type="date" id="filtroHasta">
+            </div>
+            <button class="btn-filter" onclick="filtrarTabla()">Filtrar</button>
+            <button class="btn-clear"  onclick="limpiarFiltros()">Limpiar</button>
+            <span class="filter-count" id="filtroConteo"></span>
+        </div>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Hora</th>
+                    <th>Paciente</th>
+                    <th>Doctor</th>
+                    <th>Servicio</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+                </thead>
+                <tbody id="cuerpoTabla">
+                <tr th:if="${#lists.isEmpty(citas)}">
+                    <td colspan="7" class="empty">No hay citas registradas</td>
+                </tr>
+                <tr th:each="c : ${citas}"
+                    th:data-id="${c.id}"
+                    th:data-paciente="${c.paciente.nombre + ' ' + c.paciente.apellido}"
+                    th:data-doctor="${c.doctor.nombre + ' ' + c.doctor.apellido}"
+                    th:data-estado="${c.estado}"
+                    th:data-fecha="${c.fecha}">
+                    <td th:text="${#temporals.format(c.fecha, 'dd/MM/yyyy')}"></td>
+                    <td th:text="${#temporals.format(c.hora, 'HH:mm')}"></td>
+                    <td th:text="${c.paciente.nombre + ' ' + c.paciente.apellido}"></td>
+                    <td th:text="${c.doctor.nombre + ' ' + c.doctor.apellido}"></td>
+                    <td th:text="${c.servicio.nombre}"></td>
+                    <td>
+                        <span th:classappend="'badge-' + ${c.estado}"
+                              class="badge"
+                              th:text="${c.estado}"></span>
+                    </td>
+                    <td>
+                        <div class="action-btns">
+                            <button class="btn-icon btn-view"   data-action="ver">👁 Ver</button>
+                            <button class="btn-icon btn-edit"   data-action="editar">✏ Editar</button>
+                            <button class="btn-icon btn-status" data-action="estado">⟳ Estado</button>
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ══════════ TAB: HORARIOS ══════════ -->
+    <div id="tab-horarios" class="tab-panel">
+        <div id="alertaHorarios"></div>
+        <p style="font-size:13px;color:#666;margin-bottom:14px;">
+            Configura los días y horarios en que el consultorio atiende. Solo se podrán agendar citas dentro de estos rangos.
+        </p>
+        <div class="horarios-grid" id="horariosGrid">
+            <!-- Generado desde Thymeleaf -->
+            <div th:each="h : ${horarios}" class="horario-card"
+                 th:data-dia="${h.diaSemana}">
+                <div class="horario-card-header">
+                    <span class="horario-dia" th:text="${h.nombreDia}">Lunes</span>
+                    <div class="toggle-wrap">
+                        <span>Activo</span>
+                        <label class="toggle">
+                            <input type="checkbox" class="chk-activo"
+                                   th:checked="${h.activo}">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+                <div class="horario-times">
+                    <label>Desde</label>
+                    <input type="time" class="inp-inicio"
+                           th:value="${#temporals.format(h.horaInicio, 'HH:mm')}"
+                           th:disabled="${!h.activo}">
+                    <label>Hasta</label>
+                    <input type="time" class="inp-fin"
+                           th:value="${#temporals.format(h.horaFin, 'HH:mm')}"
+                           th:disabled="${!h.activo}">
+                </div>
+            </div>
+        </div>
+        <button class="btn-save-horarios" onclick="guardarHorarios()">Guardar Horarios</button>
+    </div>
+</main>
+
+<!-- ══════════════════════════ MODAL CREAR ═══════════════════════════ -->
+<div id="modalCrear" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Nueva Cita</h2>
+            <span class="close" onclick="cerrarModal('modalCrear')">&times;</span>
+        </div>
+        <div id="alertaCrear"></div>
+        <form id="formCrear" onsubmit="guardarCita(event)">
+            <!-- Paciente con búsqueda -->
+            <div class="form-group">
+                <label>Paciente *</label>
+                <div class="searchable-select" id="ssPacienteCrear">
+                    <input type="hidden" id="c_pacienteId">
+                    <input type="text" class="searchable-input" id="c_pacienteLabel"
+                           placeholder="Buscar paciente…" readonly
+                           onclick="toggleDropdown('ddPacienteCrear')">
+                    <div class="searchable-dropdown" id="ddPacienteCrear">
+                        <input type="text" class="search-filter-inp" placeholder="Escriba para filtrar…"
+                               oninput="filtrarOpciones(this, 'ddPacienteCrear')">
+                        <div id="ddPacienteCrearOpts"></div>
+                    </div>
+                </div>
+            </div>
+            <!-- Doctor con búsqueda -->
+            <div class="form-group">
+                <label>Doctor (Odontólogo) *</label>
+                <div class="searchable-select" id="ssDoctorCrear">
+                    <input type="hidden" id="c_doctorId">
+                    <input type="text" class="searchable-input" id="c_doctorLabel"
+                           placeholder="Seleccionar doctor…" readonly
+                           onclick="toggleDropdown('ddDoctorCrear')">
+                    <div class="searchable-dropdown" id="ddDoctorCrear">
+                        <input type="text" class="search-filter-inp" placeholder="Escriba para filtrar…"
+                               oninput="filtrarOpciones(this, 'ddDoctorCrear')">
+                        <div id="ddDoctorCrearOpts"></div>
+                    </div>
+                </div>
+                <div id="c_doctorInfo" class="info-box" style="display:none;margin-top:6px;"></div>
+            </div>
+            <!-- Servicio -->
+            <div class="form-group">
+                <label>Servicio *</label>
+                <select id="c_servicioId" required onchange="mostrarInfoServicio('c')">
+                    <option value="">Seleccionar servicio…</option>
+                    <option th:each="s : ${servicios}"
+                            th:value="${s.id}"
+                            th:text="${s.nombre}"
+                            th:data-duracion="${s.duracion}"
+                            th:data-precio="${s.precio}"></option>
+                </select>
+                <div id="c_servicioInfo" style="display:none;margin-top:6px;padding:8px 10px;
+                     background:#f0f6ff;border:1px solid #d0eafa;border-radius:4px;font-size:12px;color:#1a5276;">
+                </div>
+            </div>
+            <!-- Fecha y Hora -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Fecha *</label>
+                    <input type="date" id="c_fecha" required onchange="onFechaCambio('crear')">
+                </div>
+                <div class="form-group">
+                    <label>Hora *</label>
+                    <input type="time" id="c_hora" required step="900">
+                </div>
+            </div>
+            <!-- Notas -->
+            <div class="form-group">
+                <label>Notas</label>
+                <textarea id="c_notas" rows="2" placeholder="Observaciones opcionales…"></textarea>
+            </div>
+            <button type="submit" class="btn-submit">Registrar Cita</button>
+        </form>
+    </div>
+</div>
+
+<!-- ══════════════════════════ MODAL VER ════════════════════════════ -->
+<div id="modalVer" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Detalle de la Cita</h2>
+            <span class="close" onclick="cerrarModal('modalVer')">&times;</span>
+        </div>
+        <div id="detalleCita" class="detail-grid"></div>
+    </div>
+</div>
+
+<!-- ══════════════════════════ MODAL EDITAR ═════════════════════════ -->
+<div id="modalEditar" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Editar Cita</h2>
+            <span class="close" onclick="cerrarModal('modalEditar')">&times;</span>
+        </div>
+        <div id="alertaEditar"></div>
+        <form id="formEditar" onsubmit="actualizarCita(event)">
+            <input type="hidden" id="e_id">
+            <div class="form-group">
+                <label>Paciente *</label>
+                <div class="searchable-select">
+                    <input type="hidden" id="e_pacienteId">
+                    <input type="text" class="searchable-input" id="e_pacienteLabel"
+                           placeholder="Buscar paciente…" readonly
+                           onclick="toggleDropdown('ddPacienteEditar')">
+                    <div class="searchable-dropdown" id="ddPacienteEditar">
+                        <input type="text" class="search-filter-inp" placeholder="Escriba para filtrar…"
+                               oninput="filtrarOpciones(this, 'ddPacienteEditar')">
+                        <div id="ddPacienteEditarOpts"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Doctor (Odontólogo) *</label>
+                <div class="searchable-select">
+                    <input type="hidden" id="e_doctorId">
+                    <input type="text" class="searchable-input" id="e_doctorLabel"
+                           placeholder="Seleccionar doctor…" readonly
+                           onclick="toggleDropdown('ddDoctorEditar')">
+                    <div class="searchable-dropdown" id="ddDoctorEditar">
+                        <input type="text" class="search-filter-inp" placeholder="Escriba para filtrar…"
+                               oninput="filtrarOpciones(this, 'ddDoctorEditar')">
+                        <div id="ddDoctorEditarOpts"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Servicio *</label>
+                <select id="e_servicioId" required onchange="mostrarInfoServicio('e')">
+                    <option value="">Seleccionar servicio…</option>
+                    <option th:each="s : ${servicios}"
+                            th:value="${s.id}"
+                            th:text="${s.nombre}"
+                            th:data-duracion="${s.duracion}"
+                            th:data-precio="${s.precio}"></option>
+                </select>
+                <div id="e_servicioInfo" style="display:none;margin-top:6px;padding:8px 10px;
+                     background:#f0f6ff;border:1px solid #d0eafa;border-radius:4px;font-size:12px;color:#1a5276;">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Fecha *</label>
+                    <input type="date" id="e_fecha" required onchange="onFechaCambio('editar')">
+                </div>
+                <div class="form-group">
+                    <label>Hora *</label>
+                    <input type="time" id="e_hora" required step="900">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Estado</label>
+                <select id="e_estado">
+                    <option value="Pendiente">Pendiente</option>
+                    <option value="Completada">Completada</option>
+                    <option value="Cancelada">Cancelada</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Notas</label>
+                <textarea id="e_notas" rows="2"></textarea>
+            </div>
+            <button type="submit" class="btn-submit">Guardar Cambios</button>
+        </form>
+    </div>
+</div>
+
+<!-- ══════════════════════════ MODAL ESTADO ═════════════════════════ -->
+<div id="modalEstado" class="modal">
+    <div class="modal-content" style="max-width:380px;">
+        <div class="modal-header">
+            <h2>Cambiar Estado</h2>
+            <span class="close" onclick="cerrarModal('modalEstado')">&times;</span>
+        </div>
+        <div id="alertaEstado"></div>
+        <input type="hidden" id="est_id">
+        <div class="form-group">
+            <label>Nuevo estado para la cita:</label>
+            <select id="est_estado" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;font-size:14px;">
+                <option value="Pendiente">Pendiente</option>
+                <option value="Completada">Completada</option>
+                <option value="Cancelada">Cancelada</option>
+            </select>
+        </div>
+        <button class="btn-submit" onclick="confirmarCambioEstado()" style="margin-top:8px;">Actualizar Estado</button>
+    </div>
+</div>
+
+<!-- ════════════════════════════ DATOS THYMELEAF → JS ══════════════════════════ -->
+<!-- Los datos se inyectan en data-attributes del DOM. El JS los lee desde aquí.
+     Esta técnica evita 100% los problemas con th:inline dentro de script. -->
+<div id="appData" th:data-hoy="${hoy}" style="display:none"></div>
+<div id="pacientesData" style="display:none">
+    <span th:each="p : ${pacientes}"
+          th:data-id="${p.id}"
+          th:data-nombre="${p.nombre}"
+          th:data-apellido="${p.apellido}"
+          th:data-dni="${p.dni}"></span>
+</div>
+<div id="doctoresData" style="display:none">
+    <span th:each="d : ${doctores}"
+          th:data-id="${d.id}"
+          th:data-nombre="${d.nombre}"
+          th:data-apellido="${d.apellido}"></span>
+</div>
+
+<script>
+    // ── Tabs ─────────────────────────────────────────────────────────────
+    function cambiarTab(nombre, btn) {
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('tab-' + nombre).classList.add('active');
+        btn.classList.add('active');
+    }
+
+    // ── Modales ───────────────────────────────────────────────────────────
+    function cerrarModal(id) { document.getElementById(id).style.display = 'none'; }
+    window.onclick = function(e) {
+        ['modalCrear','modalVer','modalEditar','modalEstado'].forEach(id => {
+            if (e.target === document.getElementById(id)) cerrarModal(id);
+        });
+        // Cerrar dropdowns al hacer click fuera
+        document.querySelectorAll('.searchable-dropdown.open').forEach(dd => {
+            if (!dd.parentElement.contains(e.target)) dd.classList.remove('open');
+        });
+    };
+    function mostrarAlerta(contId, mensaje, tipo) {
+        const div = document.getElementById(contId);
+        const cls = tipo === 'error' ? 'alert-error' : 'alert-success';
+        div.innerHTML = '<div class="alert ' + cls + '">' + mensaje + '</div>';
+        if (tipo !== 'error') setTimeout(() => { div.innerHTML = ''; }, 3500);
+    }
+
+    // ── Selectores buscables ──────────────────────────────────────────────
+    function toggleDropdown(ddId) {
+        const dd = document.getElementById(ddId);
+        const isOpen = dd.classList.contains('open');
+        document.querySelectorAll('.searchable-dropdown.open').forEach(d => d.classList.remove('open'));
+        if (!isOpen) {
+            dd.classList.add('open');
+            dd.querySelector('.search-filter-inp').focus();
+        }
+    }
+    function filtrarOpciones(inp, ddId) {
+        const q = inp.value.toLowerCase();
+        document.querySelectorAll('#' + ddId + ' .sd-option').forEach(opt => {
+            opt.style.display = opt.textContent.toLowerCase().includes(q) ? '' : 'none';
+        });
+    }
+
+    function construirDropdown(ddOptsId, items, hiddenId, labelId, ddId, disabledValues) {
+        const cont = document.getElementById(ddOptsId);
+        cont.innerHTML = '';
+        if (!items || items.length === 0) {
+            cont.innerHTML = '<div class="sd-empty">Sin resultados</div>';
+            return;
+        }
+        items.forEach(item => {
+            const div = document.createElement('div');
+            const isDisabled = disabledValues && disabledValues.includes(String(item.id));
+            div.className = 'sd-option' + (isDisabled ? ' disabled' : '');
+            div.textContent = item.label + (isDisabled ? ' (ocupado)' : '');
+            div.dataset.id    = item.id;
+            div.dataset.label = item.label;
+            if (!isDisabled) {
+                div.onclick = function() {
+                    document.getElementById(hiddenId).value = item.id;
+                    document.getElementById(labelId).value  = item.label;
+                    document.getElementById(ddId).classList.remove('open');
+                };
+            }
+            cont.appendChild(div);
+        });
+    }
+
+    // Leer datos desde data-attributes del DOM (inyectados por Thymeleaf)
+    function mapPacientes() {
+        return Array.from(document.querySelectorAll('#pacientesData span')).map(el => ({
+            id:    el.dataset.id,
+            label: el.dataset.nombre + ' ' + el.dataset.apellido + ' — ' + el.dataset.dni
+        }));
+    }
+    function mapDoctores() {
+        return Array.from(document.querySelectorAll('#doctoresData span')).map(el => ({
+            id:    el.dataset.id,
+            label: 'Dr. ' + el.dataset.nombre + ' ' + el.dataset.apellido
+        }));
+    }
+    function getHoy() {
+        return document.getElementById('appData').dataset.hoy || '';
+    }
+
+    // ── Horarios ocupados (para marcar doctores) ─────────────────────────
+    async function cargarHorasOcupadas(doctorId, fecha) {
+        if (!doctorId || !fecha) return [];
+        try {
+            const r = await fetch('/citas/horas-ocupadas?doctorId=' + doctorId + '&fecha=' + fecha);
+            return await r.json();
+        } catch { return []; }
+    }
+
+    // Cuando cambia la fecha en el form crear/editar, actualizar el selector de doctores
+    async function onFechaCambio(modo) {
+        const fechaId  = modo === 'crear' ? 'c_fecha'    : 'e_fecha';
+        const doctorId = modo === 'crear' ? 'c_doctorId' : 'e_doctorId';
+        const ddOptsId = modo === 'crear' ? 'ddDoctorCrearOpts' : 'ddDoctorEditarOpts';
+        const ddId     = modo === 'crear' ? 'ddDoctorCrear'     : 'ddDoctorEditar';
+        const labelId  = modo === 'crear' ? 'c_doctorLabel'     : 'e_doctorLabel';
+        const hora     = modo === 'crear' ?
+            document.getElementById('c_hora').value :
+            document.getElementById('e_hora').value;
+
+        const fecha = document.getElementById(fechaId).value;
+        if (!fecha) return;
+
+        // Para simplificar: construir sin deshabilitar (la validación está en el servidor)
+        // Opcional: si quieres marcar ocupados en tiempo real deberías conocer la hora también
+        construirDropdown(ddOptsId, mapDoctores(), doctorId, labelId, ddId, []);
+    }
+
+    // ── Modal CREAR ───────────────────────────────────────────────────────
+    function abrirModalCrear() {
+        document.getElementById('formCrear').reset();
+        document.getElementById('alertaCrear').innerHTML = '';
+        document.getElementById('c_pacienteId').value = '';
+        document.getElementById('c_pacienteLabel').value = '';
+        document.getElementById('c_doctorId').value = '';
+        document.getElementById('c_doctorLabel').value = '';
+        document.getElementById('c_doctorInfo').style.display = 'none';
+        // Fecha mínima = hoy
+        document.getElementById('c_fecha').min = getHoy();
+        actualizarMinHora('c_fecha', 'c_hora');
+        // Poblar dropdowns
+        construirDropdown('ddPacienteCrearOpts', mapPacientes(), 'c_pacienteId', 'c_pacienteLabel', 'ddPacienteCrear', []);
+        construirDropdown('ddDoctorCrearOpts', mapDoctores(), 'c_doctorId', 'c_doctorLabel', 'ddDoctorCrear', []);
+        document.getElementById('modalCrear').style.display = 'block';
+    }
+
+    async function guardarCita(e) {
+        e.preventDefault();
+        if (!document.getElementById('c_pacienteId').value) { mostrarAlerta('alertaCrear','Debe seleccionar un paciente','error'); return; }
+        if (!document.getElementById('c_doctorId').value)   { mostrarAlerta('alertaCrear','Debe seleccionar un doctor','error'); return; }
+        const body = {
+            pacienteId: parseInt(document.getElementById('c_pacienteId').value),
+            doctorId:   parseInt(document.getElementById('c_doctorId').value),
+            servicioId: parseInt(document.getElementById('c_servicioId').value),
+            fecha: document.getElementById('c_fecha').value,
+            hora:  document.getElementById('c_hora').value,
+            notas: document.getElementById('c_notas').value.trim()
+        };
+        try {
+            const resp = await fetch('/citas/guardar', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+            });
+            const data = await resp.json();
+            if (resp.ok && data.success) {
+                mostrarAlerta('alertaCrear', 'Cita registrada exitosamente', 'success');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                mostrarAlerta('alertaCrear', data.error || 'Error al registrar cita', 'error');
+            }
+        } catch { mostrarAlerta('alertaCrear', 'Error al conectar con el servidor', 'error'); }
+    }
+
+    // ── Modal VER ─────────────────────────────────────────────────────────
+    async function abrirModalVer(id) {
+        try {
+            const resp = await fetch('/citas/' + id);
+            if (!resp.ok) { alert('No se pudo cargar la cita'); return; }
+            const c = await resp.json();
+            const estadoClass = 'badge-' + c.estado;
+            document.getElementById('detalleCita').innerHTML =
+                '<div class="detail-item"><label>Fecha</label><span>' + formatFecha(c.fecha) + '</span></div>' +
+                '<div class="detail-item"><label>Hora</label><span>' + c.hora.substring(0,5) + '</span></div>' +
+                '<div class="detail-item"><label>Estado</label><span class="badge ' + estadoClass + '">' + c.estado + '</span></div>' +
+                '<div class="detail-item"><label>Servicio</label><span>' + c.servicio + '</span></div>' +
+                '<hr class="detail-divider">' +
+                '<div class="detail-item"><label>Paciente</label><span>' + c.paciente + '</span></div>' +
+                '<div class="detail-item"><label>DNI Paciente</label><span>' + c.pacienteDni + '</span></div>' +
+                '<div class="detail-item full"><label>Doctor</label><span>' + c.doctor + '</span></div>' +
+                '<hr class="detail-divider">' +
+                '<div class="detail-item full"><label>Notas</label><span>' + (c.notas || '—') + '</span></div>';
+            document.getElementById('modalVer').style.display = 'block';
+        } catch { alert('Error al cargar los datos de la cita'); }
+    }
+
+    // ── Modal EDITAR ──────────────────────────────────────────────────────
+    async function abrirModalEditar(id) {
+        try {
+            const resp = await fetch('/citas/' + id);
+            if (!resp.ok) { alert('No se pudo cargar la cita'); return; }
+            const c = await resp.json();
+            document.getElementById('e_id').value        = c.id;
+            document.getElementById('e_fecha').value     = c.fecha;
+            document.getElementById('e_hora').value      = c.hora.substring(0,5);
+            document.getElementById('e_estado').value    = c.estado;
+            document.getElementById('e_notas').value     = c.notas || '';
+            document.getElementById('e_fecha').min = getHoy();
+            actualizarMinHora('e_fecha', 'e_hora');
+            // Paciente
+            document.getElementById('e_pacienteId').value    = c.pacienteId;
+            document.getElementById('e_pacienteLabel').value = c.paciente;
+            // Doctor
+            document.getElementById('e_doctorId').value    = c.doctorId;
+            document.getElementById('e_doctorLabel').value = c.doctor;
+            // Servicio
+            document.getElementById('e_servicioId').value = c.servicioId;
+            // Dropdowns
+            construirDropdown('ddPacienteEditarOpts', mapPacientes(), 'e_pacienteId', 'e_pacienteLabel', 'ddPacienteEditar', []);
+            construirDropdown('ddDoctorEditarOpts', mapDoctores(), 'e_doctorId', 'e_doctorLabel', 'ddDoctorEditar', []);
+            document.getElementById('alertaEditar').innerHTML = '';
+            document.getElementById('modalEditar').style.display = 'block';
+        } catch { alert('Error al cargar los datos de la cita'); }
+    }
+
+    async function actualizarCita(e) {
+        e.preventDefault();
+        if (!document.getElementById('e_pacienteId').value) { mostrarAlerta('alertaEditar','Debe seleccionar un paciente','error'); return; }
+        if (!document.getElementById('e_doctorId').value)   { mostrarAlerta('alertaEditar','Debe seleccionar un doctor','error'); return; }
+        const id = document.getElementById('e_id').value;
+        const body = {
+            pacienteId: parseInt(document.getElementById('e_pacienteId').value),
+            doctorId:   parseInt(document.getElementById('e_doctorId').value),
+            servicioId: parseInt(document.getElementById('e_servicioId').value),
+            fecha:   document.getElementById('e_fecha').value,
+            hora:    document.getElementById('e_hora').value,
+            estado:  document.getElementById('e_estado').value,
+            notas:   document.getElementById('e_notas').value.trim()
+        };
+        try {
+            const resp = await fetch('/citas/' + id + '/editar', {
+                method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+            });
+            const data = await resp.json();
+            if (resp.ok && data.success) {
+                mostrarAlerta('alertaEditar', 'Cita actualizada exitosamente', 'success');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                mostrarAlerta('alertaEditar', data.error || 'Error al actualizar cita', 'error');
+            }
+        } catch { mostrarAlerta('alertaEditar', 'Error al conectar con el servidor', 'error'); }
+    }
+
+    // ── Modal ESTADO ──────────────────────────────────────────────────────
+    function abrirModalEstado(id, estadoActual) {
+        document.getElementById('est_id').value = id;
+        document.getElementById('est_estado').value = estadoActual;
+        document.getElementById('alertaEstado').innerHTML = '';
+        document.getElementById('modalEstado').style.display = 'block';
+    }
+    async function confirmarCambioEstado() {
+        const id     = document.getElementById('est_id').value;
+        const estado = document.getElementById('est_estado').value;
+        try {
+            const resp = await fetch('/citas/' + id + '/estado', {
+                method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ estado })
+            });
+            const data = await resp.json();
+            if (resp.ok && data.success) {
+                mostrarAlerta('alertaEstado', 'Estado actualizado correctamente', 'success');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                mostrarAlerta('alertaEstado', data.error || 'Error al actualizar estado', 'error');
+            }
+        } catch { mostrarAlerta('alertaEstado', 'Error al conectar con el servidor', 'error'); }
+    }
+
+    // ── Delegación de eventos en la tabla ────────────────────────────────
+    document.getElementById('cuerpoTabla').addEventListener('click', function(e) {
+        const btn = e.target.closest('[data-action]');
+        if (!btn) return;
+        const fila   = btn.closest('tr');
+        const id     = fila.dataset.id;
+        const estado = fila.dataset.estado;
+        const accion = btn.dataset.action;
+        if (accion === 'ver')    abrirModalVer(id);
+        if (accion === 'editar') abrirModalEditar(id);
+        if (accion === 'estado') abrirModalEstado(id, estado);
+    });
+
+    // ── Filtros tabla ─────────────────────────────────────────────────────
+    function filtrarTabla() {
+        const paciente = document.getElementById('filtroPaciente').value.toLowerCase();
+        const doctor   = document.getElementById('filtroDoctor').value.toLowerCase();
+        const estado   = document.getElementById('filtroEstado').value;
+        const desde    = document.getElementById('filtroDesde').value;
+        const hasta    = document.getElementById('filtroHasta').value;
+        const filas    = document.querySelectorAll('#cuerpoTabla tr[data-id]');
+        let visibles = 0;
+        filas.forEach(fila => {
+            const fPaciente = (fila.dataset.paciente || '').toLowerCase();
+            const fDoctor   = (fila.dataset.doctor   || '').toLowerCase();
+            const fEstado   = fila.dataset.estado || '';
+            const fFecha    = fila.dataset.fecha  || '';
+            const ok =
+                (!paciente || fPaciente.includes(paciente)) &&
+                (!doctor   || fDoctor.includes(doctor))     &&
+                (!estado   || fEstado === estado)            &&
+                (!desde    || fFecha >= desde)               &&
+                (!hasta    || fFecha <= hasta);
+            fila.style.display = ok ? '' : 'none';
+            if (ok) visibles++;
+        });
+        const total = filas.length;
+        document.getElementById('filtroConteo').textContent =
+            total > 0 ? visibles + ' de ' + total + ' cita' + (total !== 1 ? 's' : '') : '';
+    }
+    function limpiarFiltros() {
+        ['filtroPaciente','filtroDoctor','filtroEstado','filtroDesde','filtroHasta']
+            .forEach(id => { document.getElementById(id).value = ''; });
+        filtrarTabla();
+    }
+
+    // ── Calendcario ───────────────────────────────────────────────────────
+    const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                   'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    const DIAS_CORTOS = ['Lu','Ma','Mi','Ju','Vi','Sá','Do'];
+
+    let calAnio = new Date().getFullYear();
+    let calMes  = new Date().getMonth(); // 0-based
+    let diaSeleccionado = null;
+
+    // Mapa de fechas con citas (generado desde Thymeleaf al cargar)
+    const FECHAS_CON_CITAS = new Set();
+    (function() {
+        document.querySelectorAll('#cuerpoTabla tr[data-fecha]').forEach(tr => {
+            FECHAS_CON_CITAS.add(tr.dataset.fecha);
+        });
+    })();
+
+    function renderCalendario() {
+        const grid     = document.getElementById('calGrid');
+        const mesAnio  = document.getElementById('calMesAnio');
+        mesAnio.textContent = MESES[calMes] + ' ' + calAnio;
+        grid.innerHTML = '';
+
+        // Cabecera días
+        DIAS_CORTOS.forEach(d => {
+            const cell = document.createElement('div');
+            cell.className = 'cal-dow';
+            cell.textContent = d;
+            grid.appendChild(cell);
+        });
+
+        const hoy        = new Date(); hoy.setHours(0,0,0,0);
+        const primero    = new Date(calAnio, calMes, 1);
+        const ultimoDia  = new Date(calAnio, calMes + 1, 0).getDate();
+        // getDay(): 0=Dom, 1=Lun... convertir a Lu=0
+        let inicioCol = primero.getDay() - 1;
+        if (inicioCol < 0) inicioCol = 6;
+
+        // Celdas vacías del inicio
+        for (let i = 0; i < inicioCol; i++) {
+            const cell = document.createElement('div');
+            cell.className = 'cal-day cal-other';
+            grid.appendChild(cell);
+        }
+
+        for (let dia = 1; dia <= ultimoDia; dia++) {
+            const fecha  = new Date(calAnio, calMes, dia);
+            const fechaStr = calAnio + '-' + String(calMes+1).padStart(2,'0') + '-' + String(dia).padStart(2,'0');
+            const cell   = document.createElement('div');
+            let cls = 'cal-day';
+            if (fecha < hoy)  cls += ' cal-disabled';
+            if (fecha.getTime() === hoy.getTime()) cls += ' cal-today';
+            if (diaSeleccionado === fechaStr) cls += ' cal-selected';
+            if (FECHAS_CON_CITAS.has(fechaStr)) cls += ' cal-has-citas';
+            cell.className = cls;
+            cell.textContent = dia;
+            if (fecha >= hoy) {
+                cell.onclick = () => seleccionarDia(fechaStr, dia);
+            }
+            grid.appendChild(cell);
+        }
+    }
+
+    async function seleccionarDia(fechaStr, dia) {
+        diaSeleccionado = fechaStr;
+        renderCalendario();
+        document.getElementById('calSideTitle').textContent =
+            'Citas del ' + String(dia).padStart(2,'0') + '/' +
+            String(calMes+1).padStart(2,'0') + '/' + calAnio;
+        const cont = document.getElementById('calSideCitas');
+        cont.innerHTML = '<p class="empty-cal">Cargando…</p>';
+        try {
+            const resp = await fetch('/citas/por-fecha?fecha=' + fechaStr);
+            const citas = await resp.json();
+            if (citas.length === 0) {
+                cont.innerHTML = '<p class="empty-cal">No hay citas para este día</p>';
+                return;
+            }
+            cont.innerHTML = citas.map(c => `
+                <div class="cita-card">
+                    <div class="cita-card-header">
+                        <span class="cita-hora">${c.hora.substring(0,5)}</span>
+                        <span class="badge badge-${c.estado}">${c.estado}</span>
+                    </div>
+                    <div class="cita-info">
+                        <strong>${c.paciente}</strong><br>
+                        Doctor: ${c.doctor}<br>
+                        Servicio: ${c.servicio}
+                    </div>
+                    <div class="cita-actions">
+                        <button class="btn-icon btn-view"   onclick="abrirModalVer(${c.id})">👁 Ver</button>
+                        <button class="btn-icon btn-edit"   onclick="abrirModalEditar(${c.id})">✏ Editar</button>
+                        <button class="btn-icon btn-status" onclick="abrirModalEstado(${c.id},'${c.estado}')">⟳ Estado</button>
+                    </div>
+                </div>`).join('');
+        } catch {
+            cont.innerHTML = '<p class="empty-cal" style="color:#b91c1c">Error al cargar citas</p>';
+        }
+    }
+
+    function cambiarMes(delta) {
+        calMes += delta;
+        if (calMes < 0)  { calMes = 11; calAnio--; }
+        if (calMes > 11) { calMes = 0;  calAnio++; }
+        renderCalendario();
+    }
+
+    // ── Horarios ──────────────────────────────────────────────────────────
+    // Toggle activo/inactivo en los horarios
+    document.querySelectorAll('.chk-activo').forEach(chk => {
+        chk.addEventListener('change', function() {
+            const card = this.closest('.horario-card');
+            const ini  = card.querySelector('.inp-inicio');
+            const fin  = card.querySelector('.inp-fin');
+            ini.disabled = !this.checked;
+            fin.disabled = !this.checked;
+        });
+    });
+
+    async function guardarHorarios() {
+        const cards = document.querySelectorAll('.horario-card[data-dia]');
+        const payload = [];
+        let error = null;
+        cards.forEach(card => {
+            const dia    = parseInt(card.dataset.dia);
+            const activo = card.querySelector('.chk-activo').checked;
+            const ini    = card.querySelector('.inp-inicio').value;
+            const fin    = card.querySelector('.inp-fin').value;
+            if (activo && (!ini || !fin)) { error = 'Complete todos los horarios activos'; }
+            payload.push({ diaSemana: dia, activo, horaInicio: ini || '08:00', horaFin: fin || '18:00' });
+        });
+        if (error) { mostrarAlerta('alertaHorarios', error, 'error'); return; }
+        try {
+            const resp = await fetch('/citas/horarios/guardar', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await resp.json();
+            if (resp.ok && data.success) {
+                mostrarAlerta('alertaHorarios', 'Horarios guardados correctamente', 'success');
+            } else {
+                mostrarAlerta('alertaHorarios', data.error || 'Error al guardar horarios', 'error');
+            }
+        } catch { mostrarAlerta('alertaHorarios', 'Error al conectar con el servidor', 'error'); }
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────
+    function formatFecha(str) {
+        if (!str) return '—';
+        const [y, m, d] = str.split('-');
+        return d + '/' + m + '/' + y;
+    }
+
+    // ── Init ──────────────────────────────────────────────────────────────
+    renderCalendario();
+    filtrarTabla();
+
+        // ── Info servicio ─────────────────────────────────────────────────────
+        function mostrarInfoServicio(prefijo) {
+            const sel    = document.getElementById(prefijo + '_servicioId');
+            const infoEl = document.getElementById(prefijo + '_servicioInfo');
+            const opt    = sel.options[sel.selectedIndex];
+            if (!opt || !opt.value) { infoEl.style.display = 'none'; return; }
+            const dur  = opt.dataset.duracion;
+            const prec = parseFloat(opt.dataset.precio).toFixed(2);
+            const h    = Math.floor(dur / 60);
+            const m    = dur % 60;
+            const durTxt = h > 0 ? (m > 0 ? h + 'h ' + m + 'min' : h + 'h') : m + ' min';
+            infoEl.innerHTML = ' Duración: <strong>' + durTxt + '</strong> &nbsp;|&nbsp; Precio: <strong>S/ ' + prec + '</strong>';
+            infoEl.style.display = 'block';
+        }
+
+        // ── Hora mínima según si la fecha es hoy ─────────────────────────────
+        function actualizarMinHora(fechaInputId, horaInputId) {
+            const fechaVal = document.getElementById(fechaInputId).value;
+            const horaInp  = document.getElementById(horaInputId);
+            if (!fechaVal) return;
+            if (fechaVal === getHoy()) {
+                const ahora   = new Date();
+                const minutos = ahora.getHours() * 60 + ahora.getMinutes() + 1;
+                const redon   = Math.ceil(minutos / 15) * 15;
+                const hh = String(Math.floor(redon / 60) % 24).padStart(2, '0');
+                const mm = String(redon % 60).padStart(2, '0');
+                horaInp.min = hh + ':' + mm;
+                if (horaInp.value && horaInp.value < hh + ':' + mm) horaInp.value = '';
+            } else {
+                horaInp.min = '';
+            }
+        }
+</script>
+</body>
+</html>
