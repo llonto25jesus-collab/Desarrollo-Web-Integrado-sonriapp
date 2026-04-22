@@ -24,14 +24,6 @@ public class AuthController {
         return "login";
     }
 
-    //    @GetMapping("/dashboard")
-//    public String dashboard(@AuthenticationPrincipal UserDetailsImpl usuario, Model model) {
-//        model.addAttribute("nombre", usuario.getCorreo());
-//        model.addAttribute("rol", usuario.getAuthorities().iterator().next().getAuthority());
-//        return "dashboard";
-//    }
-
-
     @GetMapping("/reniec/consultar")
     @ResponseBody
     public ResponseEntity<?> consultarReniec(@RequestParam String dni) {
