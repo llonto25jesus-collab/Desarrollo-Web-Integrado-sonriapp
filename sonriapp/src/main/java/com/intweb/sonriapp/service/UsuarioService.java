@@ -58,7 +58,6 @@ public class UsuarioService {
 
         usuarioRepository.save(u);
 
-        // Generar token de activación (48h)
         String token = generarToken(u, TokenPasswordReset.TipoToken.ACTIVACION, 48);
         emailService.enviarActivacionCuenta(u.getCorreo(), u.getNombre() + " " + u.getApellido(), token);
 
